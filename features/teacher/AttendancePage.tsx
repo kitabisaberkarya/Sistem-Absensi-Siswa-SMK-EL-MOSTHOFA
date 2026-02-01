@@ -12,7 +12,6 @@ import {
   Save, 
   Search, 
   BookOpen, 
-  MoreHorizontal, 
   CheckSquare,
   Filter,
   Calendar
@@ -39,7 +38,6 @@ export const AttendancePage = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
   // Status Configuration for UI
   const statusConfig = [
@@ -310,7 +308,6 @@ export const AttendancePage = () => {
             {filteredStudents.map((student) => {
               const status = records[student.id];
               const note = notes[student.id];
-              const isNoteOpen = activeNoteId === student.id || !!note;
 
               return (
                 <div 
@@ -369,26 +366,11 @@ export const AttendancePage = () => {
                             </button>
                           ))}
                         </div>
-
-                        {/* Note Toggle */}
-                        <button 
-                          onClick={() => setActiveNoteId(activeNoteId === student.id ? null : student.id)}
-                          className={clsx(
-                            "p-2 rounded-lg transition-colors ml-auto sm:ml-0",
-                            note 
-                              ? "bg-yellow-100 text-yellow-700" 
-                              : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                          )}
-                          title="Tambahkan Keterangan"
-                        >
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
                       </div>
                     </div>
 
-                    {/* Expandable Note Section */}
-                    {isNoteOpen && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 animate-in slide-in-from-top-2">
+                    {/* Permanent Note Section */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
                            Keterangan / Catatan Perilaku
                          </label>
@@ -397,11 +379,9 @@ export const AttendancePage = () => {
                             value={note || ''}
                             onChange={(e) => handleNoteChange(student.id, e.target.value)}
                             placeholder={`Contoh: Izin pulang cepat karena sakit, atau Tidak membawa buku paket...`}
-                            className="w-full text-sm p-3 rounded-lg bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all"
-                            autoFocus={!note}
+                            className="w-full text-sm p-3 rounded-lg bg-gray-50 border border-gray-200 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all placeholder-gray-400"
                          />
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               );
