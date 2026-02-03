@@ -1,107 +1,129 @@
-import { MOCK_STUDENTS } from '../constants';
-import { User, Role, Student, SubmissionPayload, DashboardStats } from '../types';
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+import { MOCK_STUDENTS } from '../constants';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, CreateStudentPayload, ImportedTeacher } from '../types';
+
+// --- CONFIGURATION ---
+// IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwCH_O7LlhiMWKcltmH6HrtWX6oB8TSVoHrQTYMZNwlkko4yfApCz6m-vyrxnWILbMxlg/exec';
+
+// --- API HELPER ---
+const fetchScript = async (action: string, payload: any = {}) => {
+  // Check if URL is configured
+  if (GOOGLE_SCRIPT_URL.includes('REPLACE_WITH_YOUR')) {
+    console.warn("API URL not configured. Using Mock Data Fallback.");
+    // Simulate Network Delay for mock fallback
+    await new Promise(r => setTimeout(r, 800));
+    return null; // Triggers fallback logic below
+  }
+
+  try {
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...payload }),
+    });
+    
+    const result = await response.json();
+    if (result.status === 'error') throw new Error(result.message);
+    return result.data;
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+};
 
 export const ApiService = {
-  login: async (email: string): Promise<User> => {
-    await delay(800); 
-
-    if (email.includes('admin')) {
-      return {
-        id: 'u_admin_01',
-        name: 'Administrator IT',
-        email,
-        role: Role.ADMIN,
-        avatar: 'https://ui-avatars.com/api/?name=Admin&background=1e1b4b&color=fff'
-      };
-    }
-
-    if (email.includes('kepsek')) {
-      return {
-        id: 'u_kepsek_01',
-        name: 'Dr. Hartono, M.Pd',
-        email,
-        role: Role.PRINCIPAL,
-        avatar: 'https://ui-avatars.com/api/?name=Kepala+Sekolah&background=0f172a&color=fff'
-      };
-    }
-
-    if (email.includes('bk')) {
-      return {
-        id: 'u_bk_01',
-        name: 'Ibu Ratna (BK)',
-        email,
-        role: Role.COUNSELOR,
-        avatar: 'https://ui-avatars.com/api/?name=Guru+BK&background=be185d&color=fff'
-      };
+  login: async (email: string, password?: string): Promise<User> => {
+    // Send password to backend
+    const data = await fetchScript('login', { email, password });
+    
+    // Fallback to Mock if script not ready
+    if (!data) {
+       // Mock Login Logic
+       if (email.includes('admin')) return { id: 'u_admin_01', name: 'Administrator IT', email, role: Role.ADMIN, avatar: 'https://ui-avatars.com/api/?name=Admin&background=1e1b4b&color=fff' };
+       if (email.includes('kepsek')) return { id: 'u_kepsek_01', name: 'Dr. Hartono, M.Pd', email, role: Role.PRINCIPAL, avatar: 'https://ui-avatars.com/api/?name=Kepala+Sekolah&background=0f172a&color=fff' };
+       if (email.includes('bk')) return { id: 'u_bk_01', name: 'Ibu Ratna (BK)', email, role: Role.COUNSELOR, avatar: 'https://ui-avatars.com/api/?name=Guru+BK&background=be185d&color=fff' };
+       // Default Teacher
+       return { id: 'u_teacher_01', name: 'Budi Santoso, S.Pd', email, role: Role.TEACHER, avatar: 'https://ui-avatars.com/api/?name=Guru+Mapel&background=3b82f6&color=fff' };
     }
     
-    return {
-      id: 'u_teacher_01',
-      name: 'Budi Santoso, S.Pd',
-      email,
-      role: Role.TEACHER,
-      avatar: 'https://ui-avatars.com/api/?name=Guru+Mapel&background=3b82f6&color=fff'
-    };
+    return data as User;
   },
 
   fetchStudentsByClass: async (className: string): Promise<Student[]> => {
-    await delay(500);
-    return MOCK_STUDENTS.filter(s => s.className === className);
+    const data = await fetchScript('fetchStudentsByClass', { className });
+    // Mock Fallback
+    if (!data) return MOCK_STUDENTS.filter(s => s.className === className);
+    return data as Student[];
   },
 
   submitAttendance: async (payload: SubmissionPayload): Promise<{ success: boolean; message: string }> => {
-    await delay(1200);
-    console.log("Submitting to Google Sheets:", payload);
-    return { success: true, message: 'Data absensi berhasil disimpan!' };
+    const data = await fetchScript('submitAttendance', payload);
+    if (!data) return { success: true, message: 'Data absensi berhasil disimpan! (MOCK)' };
+    return { success: true, message: data.message };
+  },
+
+  createTeacher: async (payload: CreateTeacherPayload): Promise<{ success: boolean; message: string; id: string }> => {
+    // Ensure payload includes password
+    const data = await fetchScript('createTeacher', payload);
+    if (!data) {
+         if(payload.email.includes("error")) throw new Error("Email exists (Mock)");
+         return { success: true, message: `Guru ${payload.fullName} berhasil ditambahkan (MOCK).`, id: `T_MOCK_${Date.now()}` };
+    }
+    return { success: true, message: data.message, id: data.id };
+  },
+
+  importTeachers: async (teachers: ImportedTeacher[]): Promise<{ success: boolean; message: string; count: number }> => {
+    const data = await fetchScript('importTeachers', { teachers });
+    if (!data) {
+      return { success: true, message: `Berhasil mengimpor ${teachers.length} guru (MOCK).`, count: teachers.length };
+    }
+    return data;
+  },
+
+  createStudent: async (payload: CreateStudentPayload): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('createStudent', payload);
+    if (!data) return { success: true, message: 'Siswa berhasil ditambahkan (MOCK).' };
+    return { success: true, message: data.message };
   },
 
   fetchDashboardStats: async (): Promise<DashboardStats> => {
-    await delay(1000);
+    const data = await fetchScript('fetchDashboardStats');
     
-    // Mock Data Construction
-    return {
-      totalStudents: 450,
-      attendanceRate: 94.2,
-      absentToday: 24,
-      
-      weeklyData: [
-        { day: 'Senin', present: 430, absent: 20 },
-        { day: 'Selasa', present: 440, absent: 10 },
-        { day: 'Rabu', present: 435, absent: 15 },
-        { day: 'Kamis', present: 445, absent: 5 },
-        { day: 'Jumat', present: 420, absent: 30 },
-      ],
-      
-      classRankings: [
-        { className: '12-IPA-1', attendanceRate: 99.5, label: 'Best' },
-        { className: '10-IPA-2', attendanceRate: 98.2, label: 'Neutral' },
-        { className: '11-IPS-1', attendanceRate: 88.5, label: 'Warning' },
-      ],
-      
-      teacherSubmissionRate: 85,
-
-      atRiskStudents: [
-        { id: 'S1024', name: 'Yuni Shara', className: '11-IPS-1', alphaCount: 5, sickCount: 2, lastAbsent: 'Hari ini' },
-        { id: 'S1018', name: 'Sule', className: '10-IPA-1', alphaCount: 4, sickCount: 8, lastAbsent: 'Kemarin' },
-        { id: 'S1029', name: 'Desta', className: '12-IPA-1', alphaCount: 3, sickCount: 0, lastAbsent: '2 Hari lalu' },
-      ],
-
-      absenteeComposition: [
-        { name: 'Sakit', value: 12, color: '#eab308' },
-        { name: 'Izin', value: 8, color: '#3b82f6' },
-        { name: 'Alpha', value: 4, color: '#ef4444' },
-      ],
-
-      systemLogs: [
-        { id: 'L01', user: 'Pak Budi', action: 'Submit Absensi 10-IPA-1', timestamp: '07:15', status: 'Success' },
-        { id: 'L02', user: 'Bu Ani', action: 'Submit Absensi 11-IPS-1', timestamp: '07:20', status: 'Success' },
-        { id: 'L03', user: 'System', action: 'Auto-Backup Database', timestamp: '00:00', status: 'Success' },
-        { id: 'L04', user: 'Unknown', action: 'Failed Login Attempt', timestamp: '06:30', status: 'Failed' },
-      ],
-      totalApiRequests: 15420,
-      activeUsers: 45
-    };
+    // Mock Fallback
+    if (!data) {
+      return {
+        totalStudents: 450,
+        attendanceRate: 94.2,
+        absentToday: 24,
+        weeklyData: [
+          { day: 'Senin', present: 430, absent: 20 },
+          { day: 'Selasa', present: 440, absent: 10 },
+          { day: 'Rabu', present: 435, absent: 15 },
+          { day: 'Kamis', present: 445, absent: 5 },
+          { day: 'Jumat', present: 420, absent: 30 },
+        ],
+        classRankings: [
+          { className: '12-IPA-1', attendanceRate: 99.5, label: 'Best' },
+          { className: '10-IPA-2', attendanceRate: 98.2, label: 'Neutral' },
+          { className: '11-IPS-1', attendanceRate: 88.5, label: 'Warning' },
+        ],
+        teacherSubmissionRate: 85,
+        atRiskStudents: [
+          { id: 'S1024', name: 'Yuni Shara', className: '11-IPS-1', alphaCount: 5, sickCount: 2, lastAbsent: 'Hari ini' },
+        ],
+        absenteeComposition: [
+          { name: 'Sakit', value: 12, color: '#eab308' },
+          { name: 'Izin', value: 8, color: '#3b82f6' },
+          { name: 'Alpha', value: 4, color: '#ef4444' },
+        ],
+        systemLogs: [
+          { id: 'L01', user: 'System', action: 'Using Mock Data (Config URL)', timestamp: 'Now', status: 'Success' },
+        ],
+        totalApiRequests: 0,
+        activeUsers: 1
+      };
+    }
+    
+    return data as DashboardStats;
   }
 };

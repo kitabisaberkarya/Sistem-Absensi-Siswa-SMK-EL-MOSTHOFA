@@ -1,18 +1,52 @@
 import React from 'react';
 import { DashboardStats } from '../../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingUp, Users, CheckCircle2, Award } from 'lucide-react';
+import { TrendingUp, Users, CheckCircle2, Award, Download } from 'lucide-react';
+import { Button } from '../../components/Button';
 import clsx from 'clsx';
+import { ReportService } from '../../services/ReportService';
 
 interface Props {
   stats: DashboardStats;
 }
 
 export const PrincipalDashboard: React.FC<Props> = ({ stats }) => {
+
+  const handleDownloadReport = () => {
+    // Convert class rankings to report format
+    const reportData = stats.classRankings.map((c, i) => ({
+      no: i + 1,
+      name: c.className,
+      nis: '-',
+      className: c.className,
+      status: c.label === 'Best' ? 'Sangat Baik' : c.label === 'Warning' ? 'Perlu Perhatian' : 'Normal',
+      note: `Tingkat Kehadiran: ${c.attendanceRate}%`
+    }));
+
+    ReportService.generatePDF({
+      title: 'Laporan Eksekutif Mingguan',
+      subtitle: 'Ringkasan Performa Absensi Kelas',
+      date: new Date().toLocaleDateString('id-ID'),
+      teacher: 'Kepala Sekolah'
+    }, reportData);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
       
-      {/* 1. Executive Summary Cards */}
+      {/* 1. Header with Action */}
+      <div className="flex justify-between items-center">
+        <div>
+           <h2 className="text-xl font-bold text-gray-800">Ikhtisar Sekolah</h2>
+           <p className="text-gray-500 text-sm">Pantauan real-time aktivitas akademik.</p>
+        </div>
+        <Button variant="outline" onClick={handleDownloadReport} className="text-brand-600 border-brand-200 hover:bg-brand-50">
+          <Download className="w-4 h-4 mr-2" />
+          Download Laporan
+        </Button>
+      </div>
+
+      {/* 2. Executive Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200">
           <div className="flex items-start justify-between">
@@ -70,7 +104,7 @@ export const PrincipalDashboard: React.FC<Props> = ({ stats }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 2. Main Trend Chart */}
+        {/* 3. Main Trend Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <h3 className="font-bold text-gray-800 mb-6">Analisis Tren Mingguan</h3>
           <div className="h-[300px]">
@@ -102,7 +136,7 @@ export const PrincipalDashboard: React.FC<Props> = ({ stats }) => {
           </div>
         </div>
 
-        {/* 3. Class Rankings */}
+        {/* 4. Class Rankings */}
         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <h3 className="font-bold text-gray-800 mb-6">Ranking Performa Kelas</h3>
           <div className="space-y-5">

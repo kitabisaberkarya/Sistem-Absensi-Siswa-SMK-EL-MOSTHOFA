@@ -4,6 +4,8 @@ import { CLASSES, SUBJECTS } from '../../constants';
 import { Student, AttendanceStatus, AttendanceRecord } from '../../types';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
+import { ReportPreviewModal } from '../../components/ReportPreviewModal';
+import { ReportRow } from '../../services/ReportService';
 import { 
   CheckCircle2, 
   XCircle, 
@@ -14,7 +16,8 @@ import {
   BookOpen, 
   CheckSquare,
   Filter,
-  Calendar
+  Calendar,
+  FileText
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -38,6 +41,7 @@ export const AttendancePage = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Status Configuration for UI
   const statusConfig = [
@@ -172,6 +176,18 @@ export const AttendancePage = () => {
     }
   };
 
+  // Prepare data for report preview
+  const getReportData = (): ReportRow[] => {
+    return students.map((s, index) => ({
+      no: index + 1,
+      name: s.name,
+      nis: s.nis,
+      className: s.className,
+      status: records[s.id] || 'Belum Diabsen',
+      note: notes[s.id] || ''
+    }));
+  };
+
   // Filter students
   const filteredStudents = useMemo(() => {
     return students.filter(s => 
@@ -288,6 +304,16 @@ export const AttendancePage = () => {
               <div className="text-sm text-gray-500 hidden md:block">
                 Progress: <span className="font-bold text-brand-600">{stats.marked}/{stats.total}</span>
               </div>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => setShowReportModal(true)} 
+                className="whitespace-nowrap flex-1 md:flex-none text-xs md:text-sm border-brand-200 text-brand-700 bg-brand-50 hover:bg-brand-100"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Rekap & Export
+              </Button>
+
               <Button variant="outline" onClick={markAllPresent} className="whitespace-nowrap flex-1 md:flex-none text-xs md:text-sm">
                 <CheckSquare className="w-4 h-4 mr-2" />
                 Hadir Semua
@@ -420,6 +446,19 @@ export const AttendancePage = () => {
           </p>
         </div>
       )}
+
+      {/* Report Modal Integration */}
+      <ReportPreviewModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        data={getReportData()}
+        meta={{
+          title: 'Rekapitulasi Absensi Harian',
+          subtitle: `${selectedClass} - ${selectedSubject}`,
+          date: new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+          teacher: user?.name
+        }}
+      />
     </div>
   );
 };

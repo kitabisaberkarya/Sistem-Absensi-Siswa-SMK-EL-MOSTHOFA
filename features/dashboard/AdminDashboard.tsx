@@ -1,15 +1,24 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { DashboardStats } from '../../types';
-import { Server, Database, ShieldCheck, Activity, Terminal } from 'lucide-react';
+import { Server, Database, ShieldCheck, Activity, Terminal, UserPlus, Users, Settings, GraduationCap, FileUp } from 'lucide-react';
 import clsx from 'clsx';
+import { Button } from '../../components/Button';
+import { AddTeacherModal } from '../../components/AddTeacherModal';
+import { AddStudentModal } from '../../components/AddStudentModal';
+import { BulkImportModal } from '../../components/BulkImportModal';
 
 interface Props {
   stats: DashboardStats;
 }
 
 export const AdminDashboard: React.FC<Props> = ({ stats }) => {
+  const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300 pb-20">
       
       {/* System Status Banner */}
       <div className="bg-gray-900 rounded-xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
@@ -34,6 +43,76 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
              <div className="text-2xl font-bold font-mono text-purple-400">{stats.activeUsers}</div>
           </div>
         </div>
+      </div>
+
+      {/* QUICK ACTIONS SECTION */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Guru Management */}
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm relative overflow-hidden group hover:border-brand-300 transition-all">
+             <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-brand-50 rounded-lg text-brand-600">
+                    <UserPlus className="w-6 h-6" />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => setIsImportModalOpen(true)}
+                    className="p-2 h-auto text-brand-600 hover:bg-brand-50"
+                    title="Import from CSV"
+                  >
+                    <FileUp className="w-5 h-5" />
+                  </Button>
+                  <Settings className="w-5 h-5 text-gray-300 group-hover:text-brand-400 cursor-pointer mt-2" />
+                </div>
+             </div>
+             <h3 className="text-lg font-bold text-gray-900">Manajemen Guru</h3>
+             <p className="text-gray-500 text-sm mt-1 mb-6">
+                Tambah akun atau import massal dari CSV Jadwal.
+             </p>
+             <div className="flex gap-3">
+               <Button 
+                  onClick={() => setIsTeacherModalOpen(true)}
+                  fullWidth
+                  className="shadow-sm"
+               >
+                  Tambah Guru
+               </Button>
+             </div>
+          </div>
+
+          {/* Siswa Management */}
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm relative overflow-hidden group hover:border-brand-300 transition-all">
+             <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-purple-50 rounded-lg text-purple-600">
+                    <GraduationCap className="w-6 h-6" />
+                </div>
+                <Settings className="w-5 h-5 text-gray-300 group-hover:text-purple-400 cursor-pointer" />
+             </div>
+             <h3 className="text-lg font-bold text-gray-900">Master Data Siswa</h3>
+             <p className="text-gray-500 text-sm mt-1 mb-6">
+                Input siswa baru, mutasi kelas, dan data induk.
+             </p>
+             <Button 
+                variant="secondary"
+                onClick={() => setIsStudentModalOpen(true)}
+                fullWidth
+                className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-100"
+             >
+                Tambah Siswa
+             </Button>
+          </div>
+
+          {/* Security Audit */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col justify-center items-center text-center">
+             <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-3">
+                 <ShieldCheck className="w-6 h-6" />
+             </div>
+             <h4 className="font-bold text-gray-800">Security Audit</h4>
+             <p className="text-xs text-gray-500 mt-1 mb-4">Terakhir diperiksa: 2 jam lalu</p>
+             <Button variant="ghost" className="text-amber-600 hover:bg-amber-50 w-full text-xs">
+                 Jalankan Scan Manual
+             </Button>
+          </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -62,7 +141,6 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
                      </td>
                    </tr>
                 ))}
-                {/* Fake extra logs for visual density */}
                 <tr className="hover:bg-white/5"><td className="px-4 py-3 text-gray-500">06:29</td><td className="px-4 py-3 text-green-400">[SUCCESS]</td><td className="px-4 py-3 text-gray-300">System: Cache cleared</td></tr>
                 <tr className="hover:bg-white/5"><td className="px-4 py-3 text-gray-500">06:28</td><td className="px-4 py-3 text-green-400">[SUCCESS]</td><td className="px-4 py-3 text-gray-300">System: Daily cron job executed</td></tr>
               </tbody>
@@ -117,6 +195,11 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <AddTeacherModal isOpen={isTeacherModalOpen} onClose={() => setIsTeacherModalOpen(false)} />
+      <AddStudentModal isOpen={isStudentModalOpen} onClose={() => setIsStudentModalOpen(false)} />
+      <BulkImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
     </div>
   );
 };

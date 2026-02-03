@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistem Absensi Siswa</title>
+    <title>Sistem Absensi Siswa - SMK El Mosthofa</title>
+    <link rel="icon" href="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
@@ -38,7 +39,10 @@
     "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
     "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
-    "clsx": "https://esm.sh/clsx@^2.1.1"
+    "clsx": "https://esm.sh/clsx@^2.1.1",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@3.8.2",
+    "xlsx": "https://esm.sh/xlsx@0.18.5"
   }
 }
 </script>
@@ -48,13 +52,17 @@
       <!-- Loading State (Tampil sebelum React dimuat) -->
       <div class="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
         <div class="flex flex-col items-center gap-4">
-          <svg class="animate-spin h-10 w-10 text-brand-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <div class="text-center">
+          <div class="relative">
+            <div class="absolute inset-0 bg-blue-400 rounded-full opacity-20 animate-ping"></div>
+            <img 
+              src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+              alt="Logo SMK" 
+              class="w-24 h-24 object-contain relative z-10 animate-pulse"
+            />
+          </div>
+          <div class="text-center mt-2">
             <p class="font-bold text-gray-800 text-lg">SMK EL MOSTHOFA</p>
-            <p class="text-sm text-gray-500 animate-pulse">Memuat Sistem Absensi...</p>
+            <p class="text-sm text-gray-500">Memuat Sistem Absensi...</p>
           </div>
         </div>
       </div>

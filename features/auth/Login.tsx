@@ -18,18 +18,14 @@ export const Login = () => {
 
     try {
       if (!email || !password) throw new Error("Email dan password wajib diisi");
-      const user = await ApiService.login(email);
+      // Pass both email and password to the API
+      const user = await ApiService.login(email, password);
       login(user);
-    } catch (err) {
-      setError('Login gagal. Periksa kembali kredensial Anda.');
+    } catch (err: any) {
+      setError(err.message || 'Login gagal. Periksa email atau password Anda.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const setDemoCreds = (roleEmail: string) => {
-    setEmail(roleEmail);
-    setPassword('password123');
   };
 
   return (
@@ -50,6 +46,12 @@ export const Login = () => {
             <span className="text-sm font-semibold tracking-wide text-brand-100 uppercase">Sistem Informasi Sekolah</span>
           </div>
           
+          <img 
+            src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+            alt="Logo SMK" 
+            className="w-32 h-32 mb-6 drop-shadow-2xl"
+          />
+
           <h1 className="text-5xl font-bold leading-tight mb-6">
             SMK EL MOSTHOFA <br/>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-brand-100">
@@ -85,10 +87,16 @@ export const Login = () => {
           
           {/* Mobile Header */}
           <div className="lg:hidden text-center mb-8">
-            <div className="bg-brand-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-200">
-              <School className="w-8 h-8 text-white" />
+            <div className="w-24 h-24 mx-auto mb-4 flex items-center justify-center relative">
+               <div className="absolute inset-0 bg-blue-100 rounded-full animate-pulse opacity-50"></div>
+               <img 
+                 src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+                 alt="Logo SMK" 
+                 className="w-20 h-20 object-contain relative z-10"
+               />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">SMK EL MOSTHOFA</h2>
+            <p className="text-sm text-gray-500">Pamekasan Madura</p>
           </div>
 
           {/* Glassmorphic Card */}
@@ -155,39 +163,6 @@ export const Login = () => {
                 Masuk ke Sistem <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </form>
-            
-            {/* Quick Access / Demo Section */}
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider text-center mb-4">
-                Pilih Peran (Demo Mode)
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setDemoCreds('guru@sekolah.sch.id')}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:border-blue-400 hover:bg-blue-50 transition-all shadow-sm hover:shadow-md"
-                >
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div> Guru Mapel
-                </button>
-                <button
-                  onClick={() => setDemoCreds('bk@sekolah.sch.id')}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:border-pink-400 hover:bg-pink-50 transition-all shadow-sm hover:shadow-md"
-                >
-                  <div className="w-2 h-2 rounded-full bg-pink-500"></div> Guru BK
-                </button>
-                <button
-                  onClick={() => setDemoCreds('kepsek@sekolah.sch.id')}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:border-emerald-400 hover:bg-emerald-50 transition-all shadow-sm hover:shadow-md"
-                >
-                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Kepala Sekolah
-                </button>
-                <button
-                  onClick={() => setDemoCreds('admin@sekolah.sch.id')}
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:border-amber-400 hover:bg-amber-50 transition-all shadow-sm hover:shadow-md"
-                >
-                  <div className="w-2 h-2 rounded-full bg-amber-500"></div> Administrator
-                </button>
-              </div>
-            </div>
           </div>
           
           <p className="text-center text-xs text-gray-400/80 font-medium">

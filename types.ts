@@ -1,3 +1,4 @@
+
 export enum Role {
   TEACHER = 'TEACHER',       // Guru Mapel
   COUNSELOR = 'COUNSELOR',   // Guru BK
@@ -26,6 +27,8 @@ export interface Student {
   nis: string;
   className: string;
   gender: 'L' | 'P';
+  parentPhone?: string; // New field for production
+  address?: string;     // New field for production
 }
 
 export interface AttendanceRecord {
@@ -42,6 +45,15 @@ export interface SubmissionPayload {
   teacherId: string;
   topic: string; // Jurnal / Materi Pembahasan
   records: AttendanceRecord[];
+}
+
+// --- Bulk Import Types ---
+
+export interface ImportedTeacher {
+  no: string;
+  name: string;
+  code: string;
+  subject: string;
 }
 
 // --- Extended Dashboard Types ---
@@ -88,4 +100,26 @@ export interface DashboardStats {
   systemLogs: SystemLog[];
   totalApiRequests: number;
   activeUsers: number;
+}
+
+// --- User Management Types ---
+
+export interface CreateTeacherPayload {
+  fullName: string;
+  nip: string; // Nomor Induk Pegawai
+  email: string;
+  password?: string; // Optional field for UI state, mandatory for API
+  phone: string;
+  subject: string;
+  gender: 'L' | 'P';
+  status: 'Active' | 'Inactive';
+}
+
+export interface CreateStudentPayload {
+  name: string;
+  nis: string;
+  className: string;
+  gender: 'L' | 'P';
+  parentPhone: string;
+  address: string;
 }
