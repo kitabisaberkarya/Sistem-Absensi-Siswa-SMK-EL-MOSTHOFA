@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DashboardStats } from '../../types';
 import { UserPlus, Settings, FileUp, MoreVertical, Search, ArrowUpRight } from 'lucide-react';
@@ -17,22 +18,26 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  // Mock data for charts to match visual if stats are empty/basic
-  const chartData = stats.weeklyData.length > 0 ? stats.weeklyData : [
-    { day: 'Mon', present: 65, absent: 20 },
-    { day: 'Tue', present: 59, absent: 10 },
-    { day: 'Wed', present: 80, absent: 5 },
-    { day: 'Thu', present: 81, absent: 15 },
-    { day: 'Fri', present: 56, absent: 25 },
-    { day: 'Sat', present: 55, absent: 30 },
-    { day: 'Sun', present: 40, absent: 10 },
+  // --- Realtime Data Processing ---
+
+  // 1. Weekly Chart Data
+  // If no data (e.g., new system), show empty state or 0
+  const chartData = stats.weeklyData && stats.weeklyData.length > 0 
+    ? stats.weeklyData 
+    : [];
+
+  // 2. Pie Chart Data
+  // Calculate 'Hadir' as the remainder of total students minus specific absences
+  const totalAbsent = stats.absenteeComposition.reduce((acc, curr) => acc + curr.value, 0);
+  const presentCount = Math.max(0, stats.totalStudents - totalAbsent);
+  
+  const pieData = [
+     { name: 'Hadir', value: presentCount, color: '#3b82f6' }, // Blue
+     ...stats.absenteeComposition
   ];
 
-  const pieData = [
-     { name: 'Hadir', value: 70, color: '#3b82f6' }, // Blue
-     { name: 'Sakit', value: 15, color: '#f59e0b' }, // Orange
-     { name: 'Alpha', value: 15, color: '#64748b' }, // Gray
-  ];
+  // 3. Class Rankings Colors
+  const RANKING_COLORS = ['bg-green-500', 'bg-orange-400', 'bg-red-500', 'bg-blue-500', 'bg-[#6f42c1]'];
 
   return (
     <div className="space-y-6 pb-10">
@@ -40,20 +45,20 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
       {/* 1. TOP WIDGETS (Colored Cards) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Card 1: Blue - Sales/Students */}
+        {/* Card 1: Blue - Total Siswa */}
         <div className="bg-[#6f42c1] rounded-sm shadow-sm p-6 text-white relative overflow-hidden group">
            <div className="relative z-10">
               <h4 className="text-purple-200 text-sm font-medium uppercase tracking-wider">Total Siswa</h4>
               <div className="flex justify-between items-end mt-2">
                  <h2 className="text-4xl font-bold">{stats.totalStudents}</h2>
-                 <span className="text-xs bg-white/20 px-2 py-1 rounded">+12% New</span>
+                 <span className="text-xs bg-white/20 px-2 py-1 rounded">Terdaftar</span>
               </div>
            </div>
            {/* Decorative Circle */}
            <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full group-hover:scale-110 transition-transform"></div>
         </div>
 
-        {/* Card 2: Dark Gray - Visitors/Guru */}
+        {/* Card 2: Dark Gray - Guru Aktif */}
         <div className="bg-[#343a40] rounded-sm shadow-sm p-6 text-white relative overflow-hidden group">
            <div className="relative z-10">
               <h4 className="text-gray-400 text-sm font-medium uppercase tracking-wider">Guru Aktif</h4>
@@ -65,7 +70,7 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
             <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full group-hover:scale-110 transition-transform"></div>
         </div>
 
-        {/* Card 3: Orange - Orders/Kehadiran */}
+        {/* Card 3: Orange - Attendance Rate */}
         <div className="bg-[#fd7e14] rounded-sm shadow-sm p-6 text-white relative overflow-hidden group">
            <div className="relative z-10">
               <h4 className="text-orange-100 text-sm font-medium uppercase tracking-wider">Absensi Hari Ini</h4>
@@ -81,36 +86,38 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
       {/* 2. CHARTS SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Bar Chart (Sales/Attendance) */}
+        {/* Bar Chart (Weekly Attendance) */}
         <div className="lg:col-span-2 bg-white rounded-sm shadow-sm p-6 border border-gray-100">
            <div className="flex justify-between items-start mb-6">
               <div>
                  <h3 className="text-gray-700 font-bold uppercase text-sm tracking-wide">Statistik Kehadiran Mingguan</h3>
                  <p className="text-gray-400 text-xs mt-1">Comparasi data kehadiran 7 hari terakhir</p>
               </div>
-              <div className="flex gap-2">
-                 <button className="text-xs font-semibold text-gray-400 hover:text-brand-500">WEEK</button>
-                 <button className="text-xs font-semibold text-gray-400 hover:text-brand-500">MONTH</button>
-              </div>
            </div>
            
            <div className="h-[300px] w-full">
-             <ResponsiveContainer width="100%" height="100%">
-               <BarChart data={chartData} barSize={20}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f1f1" />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
-                  <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                  <Bar dataKey="present" fill="#6f42c1" radius={[4, 4, 0, 0]} name="Hadir" />
-                  <Bar dataKey="absent" fill="#ced4da" radius={[4, 4, 0, 0]} name="Absen" />
-               </BarChart>
-             </ResponsiveContainer>
+             {chartData.length > 0 ? (
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={chartData} barSize={20}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f1f1" />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
+                    <Tooltip cursor={{fill: '#f9fafb'}} contentStyle={{ borderRadius: '4px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="present" fill="#6f42c1" radius={[4, 4, 0, 0]} name="Hadir" />
+                    <Bar dataKey="absent" fill="#ced4da" radius={[4, 4, 0, 0]} name="Absen" />
+                 </BarChart>
+               </ResponsiveContainer>
+             ) : (
+               <div className="h-full flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-lg">
+                 Belum ada data mingguan
+               </div>
+             )}
            </div>
         </div>
 
-        {/* Pie Chart (Pie Chart Example) */}
+        {/* Pie Chart (Student Composition) */}
         <div className="bg-white rounded-sm shadow-sm p-6 border border-gray-100">
-           <h3 className="text-gray-700 font-bold uppercase text-sm tracking-wide mb-6">Komposisi Siswa</h3>
+           <h3 className="text-gray-700 font-bold uppercase text-sm tracking-wide mb-6">Komposisi Siswa (Hari Ini)</h3>
            <div className="h-[250px] relative">
               <ResponsiveContainer width="100%" height="100%">
                  <PieChart>
@@ -132,15 +139,15 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
               </ResponsiveContainer>
               {/* Center Text */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-3xl font-bold text-gray-700">95%</span>
+                  <span className="text-3xl font-bold text-gray-700">{stats.attendanceRate}%</span>
                   <span className="text-xs text-gray-400">Rata-rata</span>
               </div>
            </div>
-           <div className="mt-4 flex justify-center gap-4 text-xs">
+           <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs">
               {pieData.map(p => (
                  <div key={p.name} className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full" style={{backgroundColor: p.color}}></span>
-                    <span className="text-gray-500">{p.name}</span>
+                    <span className="text-gray-500">{p.name} ({p.value})</span>
                  </div>
               ))}
            </div>
@@ -150,34 +157,35 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
       {/* 3. LISTS / TABLES SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
          
-         {/* "Browser Stats" equivalent -> Class Performance */}
+         {/* Class Performance (Realtime from Stats) */}
          <div className="bg-white rounded-sm shadow-sm border border-gray-100">
              <div className="p-5 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="font-bold text-gray-700 uppercase text-sm">Performa Kelas</h3>
                 <MoreVertical className="w-4 h-4 text-gray-400 cursor-pointer" />
              </div>
              <div className="p-5 space-y-5">
-                {[
-                  { name: '12 IPA 1', val: 85, color: 'bg-green-500' },
-                  { name: '11 IPS 2', val: 35, color: 'bg-orange-400' },
-                  { name: '10 IPA 3', val: 78, color: 'bg-red-500' },
-                  { name: '12 BAHASA', val: 50, color: 'bg-blue-500' },
-                  { name: '11 AGAMA', val: 80, color: 'bg-[#6f42c1]' }
-                ].map((item) => (
-                   <div key={item.name}>
-                      <div className="flex justify-between text-xs mb-1 font-medium text-gray-600">
-                         <span>{item.name}</span>
-                         <span>{item.val}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
-                         <div className={`h-1.5 rounded-full ${item.color}`} style={{width: `${item.val}%`}}></div>
-                      </div>
-                   </div>
-                ))}
+                {stats.classRankings.length > 0 ? (
+                  stats.classRankings.map((item, index) => {
+                     const colorClass = RANKING_COLORS[index % RANKING_COLORS.length];
+                     return (
+                       <div key={item.className}>
+                          <div className="flex justify-between text-xs mb-1 font-medium text-gray-600">
+                             <span>{item.className}</span>
+                             <span>{item.attendanceRate}%</span>
+                          </div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5">
+                             <div className={`h-1.5 rounded-full ${colorClass}`} style={{width: `${item.attendanceRate}%`}}></div>
+                          </div>
+                       </div>
+                     );
+                  })
+                ) : (
+                  <div className="text-center text-gray-400 text-sm py-4">Belum ada data absensi kelas.</div>
+                )}
              </div>
          </div>
 
-         {/* "Product Status" equivalent -> Quick Actions / Management */}
+         {/* Management Actions */}
          <div className="bg-white rounded-sm shadow-sm border border-gray-100 flex flex-col">
              <div className="p-5 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="font-bold text-gray-700 uppercase text-sm">Manajemen Data</h3>
