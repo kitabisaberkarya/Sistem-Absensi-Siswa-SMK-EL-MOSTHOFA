@@ -1,19 +1,27 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText } from 'lucide-react';
-import { Role } from '../types';
+import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox } from 'lucide-react';
+import { Role, ViewState } from '../types';
 import clsx from 'clsx';
 
 interface LayoutProps {
   children: React.ReactNode;
+  currentView?: ViewState;
+  onViewChange?: (view: ViewState) => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // --- ADMIN LAYOUT (Sidebar Style based on Screenshot) ---
   if (user?.role === Role.ADMIN) {
+    
+    const handleNavClick = (view: ViewState) => {
+      if (onViewChange) onViewChange(view);
+    };
+
     return (
       <div className="flex h-screen bg-[#f3f4f6] font-sans overflow-hidden">
         {/* Sidebar */}
@@ -24,14 +32,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
         >
           {/* Logo Area */}
-          <div className="h-16 flex items-center gap-3 px-4 border-b border-gray-600/30">
+          <div className="h-16 flex items-center gap-3 px-4 border-b border-gray-600/30 cursor-pointer" onClick={() => handleNavClick('dashboard')}>
             <img 
               src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
               alt="Logo" 
               className="w-8 h-8 object-contain"
             />
             {sidebarOpen && (
-              <span className="font-bold text-lg tracking-wide whitespace-nowrap">NOVUS ADMIN</span>
+              <span className="font-bold text-lg tracking-wide whitespace-nowrap">SMK EL MOSTHOFA</span>
             )}
           </div>
 
@@ -52,16 +60,29 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
-            <NavItem icon={LayoutDashboard} label="Dashboard" active isOpen={sidebarOpen} />
-            <NavItem icon={Users} label="Data Guru" isOpen={sidebarOpen} />
-            <NavItem icon={GraduationCap} label="Data Siswa" isOpen={sidebarOpen} />
-            <NavItem icon={FileText} label="Laporan" isOpen={sidebarOpen} />
+            <button onClick={() => handleNavClick('dashboard')} className="w-full text-left">
+              <NavItem icon={LayoutDashboard} label="Dashboard" active={currentView === 'dashboard'} isOpen={sidebarOpen} />
+            </button>
+            <button onClick={() => handleNavClick('teachers')} className="w-full text-left">
+              <NavItem icon={Users} label="Data Guru" active={currentView === 'teachers'} isOpen={sidebarOpen} />
+            </button>
+            <button onClick={() => handleNavClick('students')} className="w-full text-left">
+              <NavItem icon={GraduationCap} label="Data Siswa" active={currentView === 'students'} isOpen={sidebarOpen} />
+            </button>
+            <button onClick={() => handleNavClick('reports')} className="w-full text-left">
+              <NavItem icon={FileText} label="Laporan" active={currentView === 'reports'} isOpen={sidebarOpen} />
+            </button>
             
             <div className="mt-8 mb-2 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
               {sidebarOpen ? 'System' : '...'}
             </div>
-            <NavItem icon={Mail} label="Mailbox" isOpen={sidebarOpen} />
-            <NavItem icon={Settings} label="Pengaturan" isOpen={sidebarOpen} />
+            
+            <button onClick={() => handleNavClick('mailbox')} className="w-full text-left">
+              <NavItem icon={Inbox} label="Mailbox" active={currentView === 'mailbox'} isOpen={sidebarOpen} />
+            </button>
+            <button onClick={() => handleNavClick('settings')} className="w-full text-left">
+              <NavItem icon={Settings} label="Pengaturan" active={currentView === 'settings'} isOpen={sidebarOpen} />
+            </button>
           </nav>
         </aside>
 
@@ -87,7 +108,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
 
             <div className="flex items-center gap-3 sm:gap-5">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={() => handleNavClick('mailbox')} className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
                 <Mail className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full border border-white"></span>
               </button>

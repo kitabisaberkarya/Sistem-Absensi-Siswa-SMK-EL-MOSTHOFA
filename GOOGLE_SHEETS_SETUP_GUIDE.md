@@ -32,12 +32,42 @@ Buat 4 tab (sheet) di bagian bawah spreadsheet dan isi **Baris 1 (Header)** pers
 *   **Header (Sel A1 s.d. E1):**
     `id`, `user`, `action`, `timestamp`, `status`
 
-## 3. Pemasangan Script Backend
+## 3. Pemasangan Script Backend (Modular)
+Karena sistem ini menggunakan arsitektur modular, Anda perlu membuat beberapa file script terpisah agar kode rapi dan mudah dikelola.
+
 1.  Di menu Google Sheet, klik **Extensions** (Ekstensi) > **Apps Script**.
-2.  Hapus semua kode default `function myFunction() {...}` yang ada di editor.
-3.  Salin (Copy) seluruh kode dari file `APPS_SCRIPT_CODE.md` yang ada di project ini.
-4.  Tempel (Paste) ke dalam editor Apps Script.
-5.  Simpan dengan menekan `Ctrl + S` (Beri nama project bebas, misal "API Absensi").
+2.  Hapus kode default `function myFunction() {...}`.
+3.  Buat file-file berikut dengan mengklik tanda **+ (Plus)** > **Script** di sebelah kiri editor:
+
+    **A. File: `Pengaturan.gs`**
+    *   Copy isi dari `APP_SCRIPT/Pengaturan.md`
+    *   *(File ini berisi konfigurasi database & fungsi helper global)*
+
+    **B. File: `DataGuru.gs`**
+    *   Copy isi dari `APP_SCRIPT/DataGuru.md`
+    *   *(Logic login, register guru, import data)*
+
+    **C. File: `DataSiswa.gs`**
+    *   Copy isi dari `APP_SCRIPT/DataSiswa.md`
+    *   *(Logic fetch siswa, create siswa)*
+
+    **D. File: `Laporan.gs`**
+    *   Copy isi dari `APP_SCRIPT/Laporan.md`
+    *   *(Logic simpan absensi)*
+
+    **E. File: `Dashboard.gs`**
+    *   Copy isi dari `APP_SCRIPT/Dashboard.md`
+    *   *(Logic analitik & statistik)*
+    
+    **F. File: `BackupRestore.gs`**
+    *   Copy isi dari `APP_SCRIPT/BackupRestore.md`
+    *   *(Logic backup data)*
+
+    **G. File: `Code.gs`** (File default biasanya sudah ada, tinggal rename/timpa)
+    *   Copy isi dari `APP_SCRIPT/Code.md`
+    *   *(Ini adalah Router utama `doPost` dan `doGet`. Pastikan file ini ada)*
+
+4.  Simpan semua file dengan menekan icon Save (Diskette) atau `Ctrl + S`.
 
 ## 4. Publikasi API (Deployment)
 Langkah ini penting agar aplikasi bisa mengirim dan mengambil data.
@@ -60,6 +90,6 @@ Langkah ini penting agar aplikasi bisa mengirim dan mengambil data.
 1.  Kembali ke kodingan aplikasi ini.
 2.  Buka file `services/api.ts`.
 3.  Cari variabel `GOOGLE_SCRIPT_URL` di bagian atas.
-4.  Tempel URL yang sudah disalin tadi ke situ.
+4.  Tempel URL yang sudah disalin tadi ke situ.OK
 
 Selesai! Aplikasi sekarang sudah terhubung dengan database Google Sheets.

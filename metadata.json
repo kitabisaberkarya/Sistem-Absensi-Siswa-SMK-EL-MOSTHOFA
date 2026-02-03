@@ -1,5 +1,5 @@
 {
-  "name": "Sistem Absensi Siswa SMK EL MOSTHOFA",
+  "name": "Sistem Absensi Siswa SMK EL MOSTHOFA ",
   "description": "Modern student attendance system with role-based access for Teachers (Entry) and Counselors (Analytics). Integrated with Google Ecosystem concepts.",
   "requestFramePermissions": []
 }

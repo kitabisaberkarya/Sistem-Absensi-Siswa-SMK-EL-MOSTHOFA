@@ -6,12 +6,18 @@ export enum Role {
   ADMIN = 'ADMIN',           // Admin Sistem
 }
 
+export type ViewState = 'dashboard' | 'teachers' | 'students' | 'reports' | 'mailbox' | 'settings';
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: Role;
   avatar?: string;
+  nip?: string;      // Optional for list view
+  subject?: string;  // Optional for list view
+  phone?: string;    // Optional for list view
+  status?: string;   // Optional for list view
 }
 
 export enum AttendanceStatus {

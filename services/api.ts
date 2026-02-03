@@ -4,7 +4,7 @@ import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPa
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwdCril43cXHi2PkBMhE8wuP3at-uyaQCftgGqr3yYndAdaKW9yDJwaymLNlWdnMl4O3A/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFU3xRbFQzb2uQ__9QeLJxHrZ7B0BK27Ey_zYRn4PT7FrtNhzhnNQZc_LiinYYfamW8A/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -54,6 +54,32 @@ export const ApiService = {
     // Mock Fallback
     if (!data) return MOCK_STUDENTS.filter(s => s.className === className);
     return data as Student[];
+  },
+
+  // NEW: Fetch all students for Admin List
+  fetchAllStudents: async (): Promise<Student[]> => {
+    const data = await fetchScript('fetchAllStudents');
+    if (!data) return MOCK_STUDENTS;
+    return data as Student[];
+  },
+
+  // NEW: Fetch all teachers for Admin List
+  fetchTeachers: async (): Promise<User[]> => {
+    const data = await fetchScript('fetchTeachers');
+    if (!data) {
+        return Array.from({ length: 10 }).map((_, i) => ({
+            id: `T_${i}`,
+            name: ['Budi Santoso, S.Pd', 'Siti Aminah, M.Pd', 'Joko Anwar, S.Si', 'Rina Nose, S.Hum'][i % 4],
+            email: `guru.${i}@sekolah.sch.id`,
+            role: Role.TEACHER,
+            nip: `198${i}0101 201001 1 00${i}`,
+            subject: ['Matematika', 'Bahasa Indonesia', 'Fisika', 'Sejarah'][i % 4],
+            phone: '08123456789',
+            status: i % 5 === 0 ? 'Inactive' : 'Active',
+            avatar: `https://ui-avatars.com/api/?name=Guru+${i}&background=random`
+        }));
+    }
+    return data;
   },
 
   submitAttendance: async (payload: SubmissionPayload): Promise<{ success: boolean; message: string }> => {
