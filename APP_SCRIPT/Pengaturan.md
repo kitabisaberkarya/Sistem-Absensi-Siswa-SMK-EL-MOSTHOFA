@@ -1,5 +1,6 @@
+
 /**
- * @OnlyCurrentDoc
+ * @OnlyCurrentDoc (REMOVED: To allow DriveApp access for Backups)
  * MODULE: PENGATURAN SISTEM
  * Konfigurasi utama database dan schema
  */

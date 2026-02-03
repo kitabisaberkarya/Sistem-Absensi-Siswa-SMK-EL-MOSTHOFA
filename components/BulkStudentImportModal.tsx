@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { X, FileSpreadsheet, Upload, CheckCircle2, Download, FileUp } from 'lucide-react';
 import { Button } from './Button';
@@ -70,10 +69,10 @@ export const BulkStudentImportModal: React.FC<Props> = ({ isOpen, onClose }) => 
             name: row['Nama Siswa'] || row['Nama'] || row['name'] || '',
             nis: (row['NIS'] || row['nis'] || '').toString(),
             className: row['Kelas'] || row['Class'] || row['className'] || '',
-            gender: (row['Jenis Kelamin'] || row['Gender'] || row['gender'] || 'L') === 'L' ? 'L' : 'P',
+            gender: ((row['Jenis Kelamin'] || row['Gender'] || row['gender'] || 'L') === 'L' ? 'L' : 'P') as 'L' | 'P',
             parentPhone: (row['No HP Ortu'] || row['HP'] || row['phone'] || '').toString(),
             address: row['Alamat'] || row['Address'] || ''
-        })).filter(s => s.name && s.nis);
+        })).filter((s: ImportedStudent) => s.name && s.nis);
 
         if (students.length > 0) {
             setParsedData(students);

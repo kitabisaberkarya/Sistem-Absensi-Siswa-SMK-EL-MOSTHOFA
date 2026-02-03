@@ -106,9 +106,21 @@ export const BackupPage = () => {
       )}
 
       {errorMsg && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-center gap-3 animate-in zoom-in">
-            <AlertTriangle className="w-5 h-5" />
-            <p className="font-semibold">{errorMsg}</p>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3 animate-in zoom-in">
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <div className="overflow-hidden w-full">
+                <p className="font-semibold text-sm md:text-base break-words whitespace-pre-wrap">{errorMsg}</p>
+                {(errorMsg.includes("permission") || errorMsg.includes("DriveApp")) && (
+                    <div className="mt-2 text-xs bg-red-100/50 p-2 rounded text-red-800">
+                        <strong>Solusi:</strong> Error ini terjadi karena Script Google belum memiliki izin akses ke Google Drive.
+                        <ul className="list-disc ml-4 mt-1 space-y-1">
+                            <li>Buka Editor Apps Script.</li>
+                            <li>Pastikan file <code>Pengaturan.gs</code> tidak memiliki baris <code>@OnlyCurrentDoc</code>.</li>
+                            <li>Lakukan <strong>Deploy</strong> ulang dan setujui izin akses (Review Permissions).</li>
+                        </ul>
+                    </div>
+                )}
+            </div>
         </div>
       )}
 
