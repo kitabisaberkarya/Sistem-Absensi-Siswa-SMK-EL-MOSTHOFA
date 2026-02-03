@@ -73,6 +73,9 @@ function handleRequest(e) {
       case 'backupDatabase':
         result = backupDatabase();
         break;
+      case 'restoreDatabase':
+        result = restoreDatabase(payload);
+        break;
 
       default:
         throw new Error('Invalid Action: ' + action);

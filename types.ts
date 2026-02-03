@@ -6,7 +6,7 @@ export enum Role {
   ADMIN = 'ADMIN',           // Admin Sistem
 }
 
-export type ViewState = 'dashboard' | 'teachers' | 'students' | 'reports' | 'mailbox' | 'settings';
+export type ViewState = 'dashboard' | 'teachers' | 'students' | 'reports' | 'mailbox' | 'settings' | 'backup';
 
 export interface User {
   id: string;
@@ -70,6 +70,25 @@ export interface ImportedStudent {
   gender: 'L' | 'P';
   parentPhone?: string;
   address?: string;
+}
+
+// --- Backup & Restore Types ---
+
+export interface BackupData {
+  timestamp: string;
+  version: string;
+  users: any[];
+  students: any[];
+  attendance: any[];
+  logs: any[];
+}
+
+export interface BackupResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  driveLink?: string;
+  data: BackupData;
 }
 
 // --- Extended Dashboard Types ---

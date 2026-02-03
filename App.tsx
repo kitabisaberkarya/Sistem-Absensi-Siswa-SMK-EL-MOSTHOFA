@@ -10,6 +10,7 @@ import { StudentsPage } from './features/admin/StudentsPage';
 import { ReportsPage } from './features/admin/ReportsPage';
 import { MailboxPage } from './features/admin/MailboxPage';
 import { SettingsPage } from './features/admin/SettingsPage';
+import { BackupPage } from './features/admin/BackupPage';
 import { Role, ViewState } from './types';
 
 const AppContent = () => {
@@ -40,6 +41,7 @@ const AppContent = () => {
       case 'reports': return <ReportsPage />;
       case 'mailbox': return <MailboxPage />;
       case 'settings': return <SettingsPage />;
+      case 'backup': return <BackupPage />;
       default: return <DashboardPage />;
     }
   };

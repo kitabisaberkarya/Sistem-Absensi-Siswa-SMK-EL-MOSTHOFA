@@ -1,10 +1,10 @@
 
 import { MOCK_STUDENTS } from '../constants';
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent } from '../types';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwx-gpMyZ1F27DsJh-75PCc_3uBYvlMi-8HJnr3PmCry05NPYip6AmIKSl0mQQ1smjbsA/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXCHOfkA_bMD5p3dmO-ecRFMR44CilgNNcsAB87xgndDcv4K2b-TgWSbYBcCqkyrAQ-w/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -117,6 +117,35 @@ export const ApiService = {
     if (!data) {
       return { success: true, message: `Berhasil mengimpor ${students.length} siswa (MOCK).`, count: students.length };
     }
+    return data;
+  },
+
+  // --- BACKUP & RESTORE SERVICES ---
+
+  createBackup: async (): Promise<BackupResponse> => {
+    const data = await fetchScript('backupDatabase');
+    if (!data) {
+        // Mock Backup
+        return {
+            success: true,
+            message: "Backup created (MOCK)",
+            timestamp: new Date().toISOString(),
+            data: {
+                timestamp: new Date().toISOString(),
+                version: "1.0",
+                users: [],
+                students: [],
+                attendance: [],
+                logs: []
+            }
+        };
+    }
+    return data;
+  },
+
+  restoreDatabase: async (backupData: BackupData): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('restoreDatabase', { data: backupData });
+    if (!data) return { success: true, message: "Database restored successfully (MOCK)" };
     return data;
   },
 

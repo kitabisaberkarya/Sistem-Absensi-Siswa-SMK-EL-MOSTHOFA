@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox } from 'lucide-react';
+import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database } from 'lucide-react';
 import { Role, ViewState } from '../types';
 import clsx from 'clsx';
 
@@ -79,6 +79,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             
             <button onClick={() => handleNavClick('mailbox')} className="w-full text-left">
               <NavItem icon={Inbox} label="Mailbox" active={currentView === 'mailbox'} isOpen={sidebarOpen} />
+            </button>
+            <button onClick={() => handleNavClick('backup')} className="w-full text-left">
+              <NavItem icon={Database} label="Backup & Restore" active={currentView === 'backup'} isOpen={sidebarOpen} />
             </button>
             <button onClick={() => handleNavClick('settings')} className="w-full text-left">
               <NavItem icon={Settings} label="Pengaturan" active={currentView === 'settings'} isOpen={sidebarOpen} />
