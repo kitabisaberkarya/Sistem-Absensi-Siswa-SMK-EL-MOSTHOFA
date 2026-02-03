@@ -1,60 +1,384 @@
 
-import React from 'react';
-import { FileText, Download, Calendar, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  FileText, 
+  Download, 
+  Calendar, 
+  Filter, 
+  FileSpreadsheet, 
+  Printer, 
+  ChevronDown, 
+  Search, 
+  School,
+  User,
+  LayoutList,
+  Grid3X3
+} from 'lucide-react';
 import { Button } from '../../components/Button';
+import { CLASSES, MOCK_STUDENTS } from '../../constants';
+import clsx from 'clsx';
+import { ReportService } from '../../services/ReportService';
+
+type ReportType = 'daily' | 'monthly' | 'student';
 
 export const ReportsPage = () => {
+  const [activeTab, setActiveTab] = useState<ReportType>('daily');
+  const [selectedClass, setSelectedClass] = useState(CLASSES[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Mock Data Generators for Preview
+  const getDailyData = () => {
+    return MOCK_STUDENTS.filter(s => s.className === selectedClass).map((s, i) => ({
+      no: i + 1,
+      name: s.name,
+      nis: s.nis,
+      gender: s.gender,
+      status: i % 10 === 0 ? 'Sakit' : i % 15 === 0 ? 'Alpha' : 'Hadir',
+      note: i % 10 === 0 ? 'Demam' : '-'
+    }));
+  };
+
+  const getMonthlyMatrix = () => {
+    // Generate dates 1-31
+    const dates = Array.from({length: 31}, (_, i) => i + 1);
+    const students = MOCK_STUDENTS.filter(s => s.className === selectedClass);
+    return { dates, students };
+  };
+
+  const handleGenerate = () => {
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 800);
+  };
+
+  const handleExportPDF = () => {
+    // Example hook into existing service
+    const data = getDailyData().map(d => ({
+        no: d.no,
+        name: d.name,
+        nis: d.nis,
+        className: selectedClass,
+        status: d.status,
+        note: d.note
+    }));
+    
+    ReportService.generatePDF({
+        title: activeTab === 'daily' ? 'Laporan Presensi Harian' : 'Laporan Berkala',
+        subtitle: `Kelas ${selectedClass}`,
+        date: activeTab === 'daily' ? selectedDate : `Bulan ${parseInt(selectedMonth)+1}`,
+        teacher: 'Administrator'
+    }, data);
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-       <div>
-          <h2 className="text-2xl font-bold text-gray-800">Laporan & Rekapitulasi</h2>
-          <p className="text-gray-500 text-sm">Unduh data absensi dan statistik sekolah.</p>
-       </div>
+    <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-right-4 duration-500">
+      
+      {/* 1. Official Header */}
+      <div className="bg-white border-b border-gray-200 pb-6">
+         <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
+            <div>
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-100 uppercase tracking-wider">
+                        Sistem Pelaporan Terpadu
+                    </span>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <School className="w-6 h-6 text-gray-700" />
+                    Pusat Laporan & Arsip
+                </h2>
+                <p className="text-gray-500 text-sm mt-1">
+                    Tahun Ajaran 2024/2025 &bull; Semester Ganjil
+                </p>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" className="text-gray-600 border-gray-300">
+                    <Printer className="w-4 h-4 mr-2" /> Cetak Langsung
+                </Button>
+            </div>
+         </div>
+      </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Card Laporan Harian */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 mb-4">
-                <FileText className="w-6 h-6" />
-             </div>
-             <h3 className="font-bold text-gray-900 mb-2">Laporan Harian</h3>
-             <p className="text-sm text-gray-500 mb-6">Rekap absensi seluruh kelas per hari ini.</p>
-             <Button variant="outline" fullWidth className="justify-between">
-                Download PDF <Download className="w-4 h-4" />
-             </Button>
-          </div>
+      {/* 2. Navigation Tabs */}
+      <div className="border-b border-gray-200">
+         <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
+            <button
+                onClick={() => setActiveTab('daily')}
+                className={clsx(
+                    "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors",
+                    activeTab === 'daily'
+                        ? "border-brand-600 text-brand-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                )}
+            >
+                <LayoutList className="w-4 h-4" />
+                Presensi Harian
+            </button>
+            <button
+                onClick={() => setActiveTab('monthly')}
+                className={clsx(
+                    "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors",
+                    activeTab === 'monthly'
+                        ? "border-brand-600 text-brand-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                )}
+            >
+                <Grid3X3 className="w-4 h-4" />
+                Rekapitulasi Bulanan
+            </button>
+            <button
+                onClick={() => setActiveTab('student')}
+                className={clsx(
+                    "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors",
+                    activeTab === 'student'
+                        ? "border-brand-600 text-brand-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                )}
+            >
+                <User className="w-4 h-4" />
+                Laporan Individu
+            </button>
+         </nav>
+      </div>
 
-          {/* Card Laporan Bulanan */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600 mb-4">
-                <Calendar className="w-6 h-6" />
-             </div>
-             <h3 className="font-bold text-gray-900 mb-2">Laporan Bulanan</h3>
-             <p className="text-sm text-gray-500 mb-6">Akumulasi kehadiran siswa bulan ini.</p>
-             <Button variant="outline" fullWidth className="justify-between">
-                Download Excel <Download className="w-4 h-4" />
-             </Button>
-          </div>
+      {/* 3. Control Panel (Filter Bar) */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm">
+         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            
+            {/* Common Filter: Class */}
+            <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5 ml-1">Kelas</label>
+                <div className="relative">
+                    <select 
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                        className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-2.5 px-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm font-medium"
+                    >
+                        {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+            </div>
 
-           {/* Card Custom */}
-           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 mb-4">
-                <Filter className="w-6 h-6" />
-             </div>
-             <h3 className="font-bold text-gray-900 mb-2">Laporan Kustom</h3>
-             <p className="text-sm text-gray-500 mb-6">Filter berdasarkan kelas dan rentang tanggal.</p>
-             <Button variant="outline" fullWidth className="justify-between">
-                Buat Laporan <Download className="w-4 h-4" />
-             </Button>
-          </div>
-       </div>
+            {/* Dynamic Filters */}
+            {activeTab === 'daily' && (
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5 ml-1">Tanggal</label>
+                    <div className="relative">
+                        <input 
+                            type="date" 
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-medium"
+                        />
+                    </div>
+                </div>
+            )}
 
-       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-          <h4 className="font-bold text-yellow-800 mb-2">Catatan Sistem</h4>
-          <p className="text-sm text-yellow-700">
-             Fitur laporan lengkap akan menggunakan data real-time dari Google Sheets. Pastikan sinkronisasi data berjalan lancar sebelum mengunduh laporan periode panjang.
-          </p>
-       </div>
+            {activeTab === 'monthly' && (
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5 ml-1">Bulan</label>
+                    <div className="relative">
+                        <select 
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-2.5 px-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm font-medium"
+                        >
+                            <option value="0">Januari</option>
+                            <option value="1">Februari</option>
+                            <option value="2">Maret</option>
+                            <option value="3">April</option>
+                            <option value="4">Mei</option>
+                            <option value="5">Juni</option>
+                            <option value="6">Juli</option>
+                            <option value="7">Agustus</option>
+                            <option value="8">September</option>
+                            <option value="9">Oktober</option>
+                            <option value="10">November</option>
+                            <option value="11">Desember</option>
+                        </select>
+                        <Calendar className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'student' && (
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5 ml-1">Cari Siswa</label>
+                    <div className="relative">
+                        <input 
+                            type="text"
+                            placeholder="Nama atau NIS..." 
+                            className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 px-4 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-medium"
+                        />
+                        <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    </div>
+                </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+                <Button 
+                    onClick={handleGenerate} 
+                    isLoading={isLoading}
+                    className="flex-1 bg-brand-700 hover:bg-brand-800 text-white"
+                >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Tampilkan
+                </Button>
+            </div>
+         </div>
+      </div>
+
+      {/* 4. Document Preview Area */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-lg min-h-[500px] flex flex-col">
+         
+         {/* Preview Toolbar */}
+         <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50/50 rounded-t-xl">
+            <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Live Preview</span>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={handleExportPDF} className="h-9 text-xs border-red-200 text-red-700 hover:bg-red-50">
+                    <FileText className="w-3.5 h-3.5 mr-2" /> Export PDF
+                </Button>
+                <Button variant="outline" className="h-9 text-xs border-green-200 text-green-700 hover:bg-green-50">
+                    <FileSpreadsheet className="w-3.5 h-3.5 mr-2" /> Export Excel
+                </Button>
+            </div>
+         </div>
+
+         {/* Document Content */}
+         <div className="flex-1 p-8 overflow-auto bg-gray-100">
+            <div className="max-w-[210mm] mx-auto bg-white shadow-sm border border-gray-200 min-h-[297mm] p-[10mm] md:p-[15mm] relative text-sm">
+                
+                {/* KOP SURAT */}
+                <div className="border-b-2 border-gray-900 pb-4 mb-6 flex gap-4 items-center justify-center text-center">
+                    <img src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" alt="Logo" className="w-20 h-20 object-contain" />
+                    <div>
+                        <h1 className="text-lg font-bold uppercase tracking-widest text-gray-900">SMK EL MOSTHOFA</h1>
+                        <p className="text-xs font-serif text-gray-600">Jalan Raya Pamekasan - Sumenep KM. 15, Madura, Jawa Timur</p>
+                        <p className="text-xs font-serif text-gray-600">Email: admin@elmosthofa.sch.id | Telp: (0324) 123456</p>
+                    </div>
+                </div>
+
+                {/* REPORT TITLE */}
+                <div className="text-center mb-6">
+                    <h2 className="text-base font-bold underline uppercase text-gray-900 mb-1">
+                        {activeTab === 'daily' ? 'LAPORAN PRESENSI HARIAN' : activeTab === 'monthly' ? 'REKAPITULASI PRESENSI BULANAN' : 'LAPORAN AKTIVITAS SISWA'}
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                        {activeTab === 'daily' 
+                            ? `Tanggal: ${new Date(selectedDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}` 
+                            : activeTab === 'monthly' 
+                            ? `Periode: Bulan ${parseInt(selectedMonth)+1} / Tahun 2024`
+                            : 'Semester Ganjil 2024/2025'
+                        }
+                    </p>
+                </div>
+
+                {/* META INFO */}
+                <div className="flex justify-between text-xs mb-4 font-medium text-gray-700">
+                    <div>
+                        <p>Kelas: <span className="font-bold">{selectedClass}</span></p>
+                        <p>Wali Kelas: <span className="font-bold">H. Budi Santoso, S.Pd</span></p>
+                    </div>
+                    <div className="text-right">
+                        <p>Dicetak Oleh: Administrator</p>
+                        <p>Waktu Cetak: {new Date().toLocaleTimeString('id-ID')}</p>
+                    </div>
+                </div>
+
+                {/* TABLE CONTENT */}
+                {activeTab === 'daily' && (
+                    <table className="w-full border-collapse border border-gray-900 text-xs">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="border border-gray-600 p-2 w-10">No</th>
+                                <th className="border border-gray-600 p-2 w-24 text-left">NIS</th>
+                                <th className="border border-gray-600 p-2 text-left">Nama Lengkap</th>
+                                <th className="border border-gray-600 p-2 w-16">L/P</th>
+                                <th className="border border-gray-600 p-2 w-24">Status</th>
+                                <th className="border border-gray-600 p-2">Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {getDailyData().map((row) => (
+                                <tr key={row.no}>
+                                    <td className="border border-gray-400 p-1.5 text-center">{row.no}</td>
+                                    <td className="border border-gray-400 p-1.5">{row.nis}</td>
+                                    <td className="border border-gray-400 p-1.5 font-medium">{row.name}</td>
+                                    <td className="border border-gray-400 p-1.5 text-center">{row.gender}</td>
+                                    <td className="border border-gray-400 p-1.5 text-center">
+                                        <span className={clsx(
+                                            "font-bold",
+                                            row.status === 'Hadir' ? 'text-black' :
+                                            row.status === 'Sakit' ? 'text-gray-600' :
+                                            'text-gray-900 underline'
+                                        )}>
+                                            {row.status}
+                                        </span>
+                                    </td>
+                                    <td className="border border-gray-400 p-1.5 italic text-gray-500">{row.note}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+
+                {activeTab === 'monthly' && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse border border-gray-900 text-[10px]">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="border border-gray-600 p-1 w-6" rowSpan={2}>No</th>
+                                    <th className="border border-gray-600 p-1 min-w-[100px] text-left" rowSpan={2}>Nama Siswa</th>
+                                    <th className="border border-gray-600 p-1 text-center" colSpan={31}>Tanggal</th>
+                                    <th className="border border-gray-600 p-1 text-center" colSpan={3}>Total</th>
+                                </tr>
+                                <tr className="bg-gray-50 text-[9px]">
+                                    {getMonthlyMatrix().dates.map(d => (
+                                        <th key={d} className="border border-gray-500 w-5">{d}</th>
+                                    ))}
+                                    <th className="border border-gray-500 w-6 bg-yellow-50">S</th>
+                                    <th className="border border-gray-500 w-6 bg-blue-50">I</th>
+                                    <th className="border border-gray-500 w-6 bg-red-50">A</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {getMonthlyMatrix().students.map((s, idx) => (
+                                    <tr key={s.id}>
+                                        <td className="border border-gray-400 text-center">{idx + 1}</td>
+                                        <td className="border border-gray-400 px-1 py-0.5 whitespace-nowrap">{s.name}</td>
+                                        {/* Mocking Matrix Data */}
+                                        {getMonthlyMatrix().dates.map(d => (
+                                            <td key={d} className="border border-gray-300 text-center text-[9px]">
+                                                {Math.random() > 0.9 ? 'S' : Math.random() > 0.95 ? 'A' : '.'}
+                                            </td>
+                                        ))}
+                                        <td className="border border-gray-400 text-center font-bold bg-yellow-50">1</td>
+                                        <td className="border border-gray-400 text-center font-bold bg-blue-50">0</td>
+                                        <td className="border border-gray-400 text-center font-bold bg-red-50">1</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* SIGNATURE SECTION */}
+                <div className="mt-12 flex justify-end">
+                    <div className="text-center w-48">
+                        <p className="text-xs mb-16">Pamekasan, {new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                        <p className="text-xs font-bold underline">H. BUDI SANTOSO, S.Pd</p>
+                        <p className="text-[10px]">NIP. 19850101 201001 1 001</p>
+                    </div>
+                </div>
+
+            </div>
+         </div>
+      </div>
     </div>
   );
 };
