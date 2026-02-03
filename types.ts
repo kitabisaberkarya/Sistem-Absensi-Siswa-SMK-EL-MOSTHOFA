@@ -18,6 +18,7 @@ export interface User {
   subject?: string;  // Optional for list view
   phone?: string;    // Optional for list view
   status?: string;   // Optional for list view
+  gender?: 'L' | 'P'; // Added to User interface for editing
 }
 
 export enum AttendanceStatus {
@@ -149,6 +150,10 @@ export interface CreateTeacherPayload {
   role: Role; // Added role field
   gender: 'L' | 'P';
   status: 'Active' | 'Inactive';
+}
+
+export interface UpdateTeacherPayload extends CreateTeacherPayload {
+  id: string;
 }
 
 export interface CreateStudentPayload {

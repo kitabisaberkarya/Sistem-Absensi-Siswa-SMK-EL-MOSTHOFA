@@ -57,7 +57,7 @@ function createTeacher(payload) {
     payload.fullName,
     payload.email,
     payload.password || '123456',
-    payload.role, // Changed from hardcoded 'TEACHER' to payload.role (TEACHER, COUNSELOR, PRINCIPAL)
+    payload.role, 
     payload.nip,
     payload.phone,
     payload.subject,
@@ -68,6 +68,51 @@ function createTeacher(payload) {
   
   logSystem('ADMIN', `Created User: ${payload.fullName} as ${payload.role}`);
   return { id: newId, message: 'User created successfully' };
+}
+
+function updateTeacher(payload) {
+  const sheet = getSheetOrSetup(SHEETS.USERS);
+  const data = sheet.getDataRange().getValues();
+  // Headers are at index 0. Data starts at index 1.
+  
+  // Find ID column index (usually 0)
+  const idColIndex = data[0].indexOf('id');
+  if (idColIndex === -1) throw new Error("Database error: ID column not found");
+
+  let rowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idColIndex]) === String(payload.id)) {
+      rowIndex = i + 1; // row is 1-based index
+      break;
+    }
+  }
+
+  if (rowIndex === -1) throw new Error("User ID not found.");
+
+  // Column Mapping based on SHEET_HEADERS in Pengaturan.gs
+  // ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar']
+  const headers = data[0];
+  
+  const setCell = (colName, value) => {
+    const colIndex = headers.indexOf(colName);
+    if (colIndex > -1 && value !== undefined) {
+      sheet.getRange(rowIndex, colIndex + 1).setValue(value);
+    }
+  };
+
+  // Perform updates
+  setCell('name', payload.fullName);
+  setCell('email', payload.email);
+  if (payload.password) setCell('password', payload.password);
+  setCell('role', payload.role);
+  setCell('nip', payload.nip);
+  setCell('phone', payload.phone);
+  setCell('subject', payload.subject);
+  setCell('gender', payload.gender);
+  setCell('status', payload.status);
+
+  logSystem('ADMIN', `Updated User: ${payload.fullName} (${payload.id})`);
+  return { message: 'User updated successfully' };
 }
 
 function importTeachers(teachers) {

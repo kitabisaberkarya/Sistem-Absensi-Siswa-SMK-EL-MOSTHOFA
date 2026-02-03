@@ -4,6 +4,8 @@ import { ApiService } from '../../services/api';
 import { User } from '../../types';
 import { Button } from '../../components/Button';
 import { AddTeacherModal } from '../../components/AddTeacherModal';
+import { EditTeacherModal } from '../../components/EditTeacherModal';
+import { TeacherDetailModal } from '../../components/TeacherDetailModal';
 import { BulkImportModal } from '../../components/BulkImportModal';
 import { Search, Plus, Upload, MoreHorizontal, Mail, Phone, BookOpen } from 'lucide-react';
 import clsx from 'clsx';
@@ -12,8 +14,14 @@ export const TeachersPage = () => {
   const [teachers, setTeachers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  const [selectedTeacher, setSelectedTeacher] = useState<User | null>(null);
 
   const fetchTeachers = async () => {
     setLoading(true);
@@ -30,6 +38,25 @@ export const TeachersPage = () => {
   useEffect(() => {
     fetchTeachers();
   }, []);
+
+  const handleEditClick = (teacher: User) => {
+    setSelectedTeacher(teacher);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDetailClick = (teacher: User) => {
+    setSelectedTeacher(teacher);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseModals = () => {
+    setIsAddModalOpen(false);
+    setIsEditModalOpen(false);
+    setIsDetailModalOpen(false);
+    setIsImportModalOpen(false);
+    setSelectedTeacher(null);
+    fetchTeachers(); // Refresh data after close
+  };
 
   const filteredTeachers = teachers.filter(t => 
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -79,17 +106,20 @@ export const TeachersPage = () => {
             <div key={i} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm animate-pulse h-48"></div>
           ))
         ) : filteredTeachers.map((teacher) => (
-          <div key={teacher.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
+          <div key={teacher.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative flex flex-col h-full">
              <div className="absolute top-4 right-4">
-                <button className="text-gray-400 hover:text-brand-600">
+                <button 
+                  onClick={() => handleDetailClick(teacher)}
+                  className="text-gray-400 hover:text-brand-600 p-1 hover:bg-gray-100 rounded-full"
+                >
                    <MoreHorizontal className="w-5 h-5" />
                 </button>
              </div>
              
              <div className="flex items-center gap-4 mb-4">
-                <img src={teacher.avatar} alt={teacher.name} className="w-14 h-14 rounded-full border-2 border-gray-100" />
+                <img src={teacher.avatar} alt={teacher.name} className="w-14 h-14 rounded-full border-2 border-gray-100 object-cover" />
                 <div>
-                   <h3 className="font-bold text-gray-900 line-clamp-1">{teacher.name}</h3>
+                   <h3 className="font-bold text-gray-900 line-clamp-1" title={teacher.name}>{teacher.name}</h3>
                    <div className="flex items-center gap-1.5 mt-1">
                      <span className={clsx("w-2 h-2 rounded-full", teacher.status === 'Inactive' ? 'bg-gray-400' : 'bg-green-500')}></span>
                      <span className="text-xs text-gray-500 font-medium">{teacher.role === 'TEACHER' ? 'Guru Mapel' : teacher.role}</span>
@@ -97,26 +127,32 @@ export const TeachersPage = () => {
                 </div>
              </div>
 
-             <div className="space-y-2 text-sm text-gray-600 mb-4">
+             <div className="space-y-2 text-sm text-gray-600 mb-4 flex-1">
                <div className="flex items-center gap-3">
-                 <Mail className="w-4 h-4 text-gray-400" />
-                 <span className="truncate">{teacher.email}</span>
+                 <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                 <span className="truncate" title={teacher.email}>{teacher.email}</span>
                </div>
                <div className="flex items-center gap-3">
-                 <Phone className="w-4 h-4 text-gray-400" />
+                 <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
                  <span>{teacher.phone || '-'}</span>
                </div>
                <div className="flex items-center gap-3">
-                 <BookOpen className="w-4 h-4 text-gray-400" />
-                 <span className="font-medium text-brand-600 bg-brand-50 px-2 py-0.5 rounded">{teacher.subject || 'Umum'}</span>
+                 <BookOpen className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                 <span className="font-medium text-brand-600 bg-brand-50 px-2 py-0.5 rounded truncate max-w-[150px]">{teacher.subject || 'Umum'}</span>
                </div>
              </div>
 
-             <div className="pt-4 border-t border-gray-100 flex gap-2">
-               <button className="flex-1 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 rounded border border-gray-200">
+             <div className="pt-4 border-t border-gray-100 flex gap-2 mt-auto">
+               <button 
+                 onClick={() => handleDetailClick(teacher)}
+                 className="flex-1 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+               >
                  Detail
                </button>
-               <button className="flex-1 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 rounded border border-brand-200">
+               <button 
+                 onClick={() => handleEditClick(teacher)}
+                 className="flex-1 py-2 text-xs font-semibold text-brand-600 hover:bg-brand-50 rounded-lg border border-brand-200 transition-colors"
+               >
                  Edit
                </button>
              </div>
@@ -131,8 +167,28 @@ export const TeachersPage = () => {
       )}
 
       {/* Modals */}
-      <AddTeacherModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); fetchTeachers(); }} />
-      <BulkImportModal isOpen={isImportModalOpen} onClose={() => { setIsImportModalOpen(false); fetchTeachers(); }} />
+      <AddTeacherModal 
+        isOpen={isAddModalOpen} 
+        onClose={handleCloseModals} 
+      />
+      
+      <EditTeacherModal 
+        isOpen={isEditModalOpen} 
+        onClose={handleCloseModals} 
+        teacher={selectedTeacher}
+      />
+
+      <TeacherDetailModal 
+        isOpen={isDetailModalOpen} 
+        onClose={() => setIsDetailModalOpen(false)} 
+        teacher={selectedTeacher}
+        onEdit={() => { setIsDetailModalOpen(false); setIsEditModalOpen(true); }}
+      />
+      
+      <BulkImportModal 
+        isOpen={isImportModalOpen} 
+        onClose={handleCloseModals} 
+      />
     </div>
   );
 };

@@ -1,10 +1,10 @@
 
 import { MOCK_STUDENTS } from '../constants';
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse } from '../types';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzS-FFVEUfUPWtIxq9d1tpDK3Az6hxGaT_3guAgELOUt7hUEWtuvsQZeIGm-mZL9uZ_tw/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkWNLr5T2lJaHukqs6Qw4ekz-ei7f7iVnt5VQ-mpIA0Z79iRyo4nbHISvNlXnVe21ywQ/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -76,7 +76,8 @@ export const ApiService = {
             subject: ['Matematika', 'Bahasa Indonesia', 'Fisika', 'Sejarah'][i % 4],
             phone: '08123456789',
             status: i % 5 === 0 ? 'Inactive' : 'Active',
-            avatar: `https://ui-avatars.com/api/?name=Guru+${i}&background=random`
+            avatar: `https://ui-avatars.com/api/?name=Guru+${i}&background=random`,
+            gender: i % 2 === 0 ? 'L' : 'P'
         }));
     }
     return data;
@@ -96,6 +97,14 @@ export const ApiService = {
          return { success: true, message: `Guru ${payload.fullName} berhasil ditambahkan (MOCK).`, id: `T_MOCK_${Date.now()}` };
     }
     return { success: true, message: data.message, id: data.id };
+  },
+
+  updateTeacher: async (payload: UpdateTeacherPayload): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('updateTeacher', payload);
+    if (!data) {
+         return { success: true, message: `Data ${payload.fullName} berhasil diperbarui (MOCK).` };
+    }
+    return { success: true, message: data.message };
   },
 
   importTeachers: async (teachers: ImportedTeacher[]): Promise<{ success: boolean; message: string; count: number }> => {
