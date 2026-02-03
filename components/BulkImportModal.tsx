@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
-import { X, FileSpreadsheet, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, FileSpreadsheet, Upload, CheckCircle2, AlertCircle, Download, FileUp } from 'lucide-react';
 import { Button } from './Button';
 import { ImportedTeacher } from '../types';
 import { ApiService } from '../services/api';
+import * as XLSX from 'xlsx';
+import clsx from 'clsx';
 
 interface Props {
   isOpen: boolean;
@@ -15,6 +17,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [parsedData, setParsedData] = useState<ImportedTeacher[]>([]);
   const [step, setStep] = useState<'input' | 'preview' | 'success'>('input');
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -25,7 +28,6 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
     const detectedTeachers: ImportedTeacher[] = [];
     
     // Regex Logic to find: ;NO;NAME;;;;CODE;SUBJECT
-    // Matches patterns like: ;1;ABDUL WAHED,M.Pd;;;;A;Pendidikan Agama...
     const teacherRegex = /;(\d+);([^;]+);;;;([^;]+);([^;]+)/;
 
     lines.forEach(line => {
@@ -46,6 +48,68 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
     } else {
       alert("Tidak ada data guru yang terdeteksi. Pastikan format CSV sesuai (Jadwal Pelajaran).");
     }
+  };
+
+  const handleDownloadTemplate = () => {
+    // Definisi Header dan Data Dummy
+    const headers = ["No", "Nama Guru", "Kode", "Mata Pelajaran"];
+    const data = [
+      ["1", "H. Budi Santoso, S.Pd", "BS", "Matematika"],
+      ["2", "Siti Aminah, M.Pd", "SA", "Bahasa Inggris"],
+    ];
+
+    // Buat Worksheet
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    
+    // Set lebar kolom agar rapi
+    ws['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 10 }, { wch: 25 }];
+
+    // Buat Workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template Guru");
+
+    // Download
+    XLSX.writeFile(wb, "Template_Import_Guru.xlsx");
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+        // Map data Excel ke format internal
+        const teachers: ImportedTeacher[] = jsonData.map((row: any) => ({
+            no: (row['No'] || row['no'] || '0').toString(),
+            name: row['Nama Guru'] || row['name'] || '',
+            code: row['Kode'] || row['code'] || '',
+            subject: row['Mata Pelajaran'] || row['subject'] || ''
+        })).filter(t => t.name && t.code);
+
+        if (teachers.length > 0) {
+            setParsedData(teachers);
+            setStep('preview');
+        } else {
+            alert("Data kosong atau format template tidak sesuai (Header: No, Nama Guru, Kode, Mata Pelajaran).");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Gagal membaca file Excel. Pastikan file tidak rusak.");
+      } finally {
+        setLoading(false);
+        // Reset input agar bisa upload file yang sama jika perlu
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleImport = async () => {
@@ -78,8 +142,8 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <FileSpreadsheet className="w-6 h-6" />
              </div>
              <div>
-                <h3 className="text-xl font-bold text-gray-900">Import Data Jadwal (CSV)</h3>
-                <p className="text-sm text-gray-500">Ekstrak data Guru & Mapel dari format CSV Jadwal.</p>
+                <h3 className="text-xl font-bold text-gray-900">Import Data Jadwal</h3>
+                <p className="text-sm text-gray-500">Mendukung Paste CSV (Legacy) atau Upload Excel Template.</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-600">
@@ -95,8 +159,8 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4 flex gap-3 text-blue-800 text-sm">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <p>
-                  Salin seluruh isi file CSV (separator titik koma) dan tempel di bawah ini. Sistem akan otomatis mendeteksi kolom: 
-                  <strong> No, Nama Guru, Kode, dan Mata Pelajaran</strong>.
+                  <strong>Metode 1:</strong> Salin isi file CSV (separator titik koma) ke kolom di bawah.<br/>
+                  <strong>Metode 2:</strong> Gunakan tombol <strong>Upload Excel</strong> dengan format sesuai template.
                 </p>
               </div>
               <textarea
@@ -122,7 +186,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                        <th className="px-6 py-3">Kode</th>
                        <th className="px-6 py-3">Nama Guru</th>
                        <th className="px-6 py-3">Mata Pelajaran</th>
-                       <th className="px-6 py-3">Generated Email (Preview)</th>
+                       <th className="px-6 py-3">Generated Email</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-100">
@@ -155,14 +219,34 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 bg-white flex justify-end gap-3">
+        <div className={clsx("p-6 border-t border-gray-100 bg-white flex items-center gap-3", step === 'input' ? 'justify-between' : 'justify-end')}>
           {step === 'input' && (
              <>
-               <Button variant="ghost" onClick={onClose}>Batal</Button>
-               <Button onClick={handleParse} disabled={!csvContent} className="bg-green-600 hover:bg-green-700">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Analisis File
+               <Button variant="ghost" onClick={handleDownloadTemplate} className="text-gray-500 hover:text-green-600 border border-dashed border-gray-300 hover:border-green-300">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Template
                </Button>
+               
+               <div className="flex gap-3">
+                 <input 
+                    type="file" 
+                    hidden 
+                    accept=".xlsx, .xls" 
+                    ref={fileInputRef} 
+                    onChange={handleFileUpload} 
+                 />
+                 <Button variant="ghost" onClick={onClose}>Batal</Button>
+                 
+                 <Button variant="secondary" onClick={() => fileInputRef.current?.click()} isLoading={loading} className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <FileUp className="w-4 h-4 mr-2" />
+                    Upload Excel
+                 </Button>
+
+                 <Button onClick={handleParse} disabled={!csvContent} className="bg-green-600 hover:bg-green-700">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Analisis Text
+                 </Button>
+               </div>
              </>
           )}
           {step === 'preview' && (
