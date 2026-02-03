@@ -1,4 +1,5 @@
 
+
 /**
  * MODULE: MANAJEMEN PENGGUNA & GURU
  */
@@ -56,7 +57,7 @@ function createTeacher(payload) {
     payload.fullName,
     payload.email,
     payload.password || '123456',
-    'TEACHER',
+    payload.role, // Changed from hardcoded 'TEACHER' to payload.role (TEACHER, COUNSELOR, PRINCIPAL)
     payload.nip,
     payload.phone,
     payload.subject,
@@ -65,8 +66,8 @@ function createTeacher(payload) {
     ''
   ]);
   
-  logSystem('ADMIN', `Created Teacher: ${payload.fullName}`);
-  return { id: newId, message: 'Teacher created successfully' };
+  logSystem('ADMIN', `Created User: ${payload.fullName} as ${payload.role}`);
+  return { id: newId, message: 'User created successfully' };
 }
 
 function importTeachers(teachers) {

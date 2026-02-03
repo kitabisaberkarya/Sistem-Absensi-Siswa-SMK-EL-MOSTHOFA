@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { X, UserPlus, Mail, Phone, BookOpen, User, CreditCard, CheckCircle2, Lock } from 'lucide-react';
+import { X, UserPlus, Mail, Phone, BookOpen, User, CreditCard, CheckCircle2, Lock, Shield } from 'lucide-react';
 import { Button } from './Button';
 import { ApiService } from '../services/api';
-import { CreateTeacherPayload } from '../types';
+import { CreateTeacherPayload, Role } from '../types';
 import clsx from 'clsx';
 
 interface Props {
@@ -21,6 +21,7 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
     password: '',
     phone: '',
     subject: '',
+    role: Role.TEACHER,
     gender: 'L',
     status: 'Active'
   });
@@ -29,7 +30,17 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Auto-adjust subject if role changes
+    if (name === 'role') {
+        setFormData(prev => ({ 
+            ...prev, 
+            [name]: value as Role,
+            subject: (value === Role.PRINCIPAL || value === Role.COUNSELOR) ? '-' : prev.subject
+        }));
+    } else {
+        setFormData(prev => ({ ...prev, [name]: value } as CreateTeacherPayload));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +60,7 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
             password: '',
             phone: '',
             subject: '',
+            role: Role.TEACHER,
             gender: 'L',
             status: 'Active'
         });
@@ -75,8 +87,8 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <UserPlus className="w-6 h-6" />
              </div>
              <div>
-                <h3 className="text-xl font-bold text-gray-900">Registrasi Guru Baru</h3>
-                <p className="text-sm text-gray-500">Input data lengkap tenaga pengajar ke database.</p>
+                <h3 className="text-xl font-bold text-gray-900">Registrasi Pengguna Baru</h3>
+                <p className="text-sm text-gray-500">Input data lengkap tenaga pengajar/staff ke database.</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-600">
@@ -92,7 +104,7 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
                  </div>
                  <h3 className="text-2xl font-bold text-gray-900">Registrasi Berhasil!</h3>
                  <p className="text-gray-500 mt-2 max-w-sm">
-                    Data guru <strong>{formData.fullName}</strong> telah tersimpan. Kredensial login akan dikirimkan melalui email.
+                    Data pengguna <strong>{formData.fullName}</strong> berhasil disimpan sebagai <strong>{formData.role === Role.TEACHER ? 'Guru Mapel' : formData.role === Role.COUNSELOR ? 'Guru BK' : 'Kepala Sekolah'}</strong>.
                  </p>
              </div>
         ) : (
@@ -116,8 +128,26 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
+                {/* Role Selector (NEW FEATURE) */}
+                <div className="col-span-2 md:col-span-1">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Jabatan / Role</label>
+                    <div className="relative">
+                        <Shield className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+                        <select
+                            name="role"
+                            value={formData.role}
+                            onChange={handleChange}
+                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all bg-white font-medium text-gray-800"
+                        >
+                            <option value={Role.TEACHER}>Guru Mapel</option>
+                            <option value={Role.COUNSELOR}>Guru BK</option>
+                            <option value={Role.PRINCIPAL}>Kepala Sekolah</option>
+                        </select>
+                    </div>
+                </div>
+
                 {/* NIP */}
-                <div>
+                <div className="col-span-2 md:col-span-1">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">NIP / NIY</label>
                     <div className="relative">
                         <CreditCard className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
@@ -133,26 +163,38 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                {/* Subject */}
+                {/* Subject - Optional for Non-Teachers */}
                 <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Mata Pelajaran Utama</label>
                     <div className="relative">
                         <BookOpen className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                        <select
-                            name="subject"
-                            required
-                            value={formData.subject}
-                            onChange={handleChange}
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all bg-gray-50 focus:bg-white appearance-none"
-                        >
-                            <option value="">-- Pilih Mapel --</option>
-                            <option value="Matematika">Matematika</option>
-                            <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                            <option value="Bahasa Inggris">Bahasa Inggris</option>
-                            <option value="IPA">IPA (Fisika/Kimia/Bio)</option>
-                            <option value="IPS">IPS (Sejarah/Geo/Eko)</option>
-                            <option value="PAI">Pendidikan Agama</option>
-                        </select>
+                        {formData.role === Role.TEACHER ? (
+                            <select
+                                name="subject"
+                                required
+                                value={formData.subject}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all bg-gray-50 focus:bg-white appearance-none"
+                            >
+                                <option value="">-- Pilih Mapel --</option>
+                                <option value="Matematika">Matematika</option>
+                                <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+                                <option value="Bahasa Inggris">Bahasa Inggris</option>
+                                <option value="IPA">IPA (Fisika/Kimia/Bio)</option>
+                                <option value="IPS">IPS (Sejarah/Geo/Eko)</option>
+                                <option value="PAI">Pendidikan Agama</option>
+                                <option value="BK">Bimbingan Konseling</option>
+                            </select>
+                        ) : (
+                            <input 
+                                type="text"
+                                name="subject"
+                                value={formData.subject}
+                                onChange={handleChange}
+                                placeholder="Opsional untuk Staff/Kepsek"
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-500"
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -245,7 +287,7 @@ export const AddTeacherModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
             <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3">
                 <Button variant="ghost" type="button" onClick={onClose}>Batal</Button>
-                <Button type="submit" isLoading={loading} className="px-6">Simpan Data Guru</Button>
+                <Button type="submit" isLoading={loading} className="px-6">Simpan Data</Button>
             </div>
             </form>
         )}

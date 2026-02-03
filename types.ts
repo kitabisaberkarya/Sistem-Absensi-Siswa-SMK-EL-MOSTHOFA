@@ -146,6 +146,7 @@ export interface CreateTeacherPayload {
   password?: string; // Optional field for UI state, mandatory for API
   phone: string;
   subject: string;
+  role: Role; // Added role field
   gender: 'L' | 'P';
   status: 'Active' | 'Inactive';
 }
