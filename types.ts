@@ -62,6 +62,16 @@ export interface ImportedTeacher {
   subject: string;
 }
 
+export interface ImportedStudent {
+  no: string;
+  name: string;
+  nis: string;
+  className: string;
+  gender: 'L' | 'P';
+  parentPhone?: string;
+  address?: string;
+}
+
 // --- Extended Dashboard Types ---
 
 export interface AtRiskStudent {

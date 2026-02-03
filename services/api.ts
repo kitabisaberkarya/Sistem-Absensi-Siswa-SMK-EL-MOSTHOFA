@@ -1,6 +1,6 @@
 
 import { MOCK_STUDENTS } from '../constants';
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, CreateStudentPayload, ImportedTeacher } from '../types';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
@@ -110,6 +110,14 @@ export const ApiService = {
     const data = await fetchScript('createStudent', payload);
     if (!data) return { success: true, message: 'Siswa berhasil ditambahkan (MOCK).' };
     return { success: true, message: data.message };
+  },
+
+  importStudents: async (students: ImportedStudent[]): Promise<{ success: boolean; message: string; count: number }> => {
+    const data = await fetchScript('importStudents', { students });
+    if (!data) {
+      return { success: true, message: `Berhasil mengimpor ${students.length} siswa (MOCK).`, count: students.length };
+    }
+    return data;
   },
 
   fetchDashboardStats: async (): Promise<DashboardStats> => {

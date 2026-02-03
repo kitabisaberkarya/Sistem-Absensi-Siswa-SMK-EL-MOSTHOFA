@@ -4,7 +4,8 @@ import { ApiService } from '../../services/api';
 import { Student } from '../../types';
 import { Button } from '../../components/Button';
 import { AddStudentModal } from '../../components/AddStudentModal';
-import { Search, Plus, Filter, User } from 'lucide-react';
+import { BulkStudentImportModal } from '../../components/BulkStudentImportModal';
+import { Search, Plus, Filter, User, Upload } from 'lucide-react';
 import { CLASSES } from '../../constants';
 
 export const StudentsPage = () => {
@@ -13,6 +14,7 @@ export const StudentsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -45,9 +47,14 @@ export const StudentsPage = () => {
           <h2 className="text-2xl font-bold text-gray-800">Data Siswa</h2>
           <p className="text-gray-500 text-sm">Master data peserta didik aktif.</p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Tambah Siswa
-        </Button>
+        <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setIsImportModalOpen(true)} className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50">
+               <Upload className="w-4 h-4 mr-2" /> Import
+            </Button>
+            <Button onClick={() => setIsAddModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" /> Tambah Siswa
+            </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -123,6 +130,7 @@ export const StudentsPage = () => {
       </div>
 
       <AddStudentModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); fetchStudents(); }} />
+      <BulkStudentImportModal isOpen={isImportModalOpen} onClose={() => { setIsImportModalOpen(false); fetchStudents(); }} />
     </div>
   );
 };
