@@ -4,7 +4,7 @@ import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPa
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFU3xRbFQzb2uQ__9QeLJxHrZ7B0BK27Ey_zYRn4PT7FrtNhzhnNQZc_LiinYYfamW8A/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwx-gpMyZ1F27DsJh-75PCc_3uBYvlMi-8HJnr3PmCry05NPYip6AmIKSl0mQQ1smjbsA/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {

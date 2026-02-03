@@ -1,3 +1,4 @@
+
 /**
  * MODULE: MANAJEMEN PENGGUNA & GURU
  */
@@ -20,6 +21,23 @@ function handleLogin(email, password) {
     role: user.role,
     avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`
   };
+}
+
+function getAllTeachers() {
+  const users = getData(SHEETS.USERS);
+  // Return user data sanitised (remove password)
+  return users.map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    nip: u.nip,
+    phone: u.phone,
+    subject: u.subject,
+    gender: u.gender,
+    status: u.status,
+    avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random`
+  }));
 }
 
 function createTeacher(payload) {

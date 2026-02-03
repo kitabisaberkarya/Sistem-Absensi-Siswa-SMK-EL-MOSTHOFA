@@ -1,3 +1,4 @@
+
 /**
  * MODULE: API GATEWAY (Main Controller)
  * Menangani request HTTP dari React Frontend
@@ -34,6 +35,9 @@ function handleRequest(e) {
       case 'login':
         result = handleLogin(payload.email, payload.password);
         break;
+      case 'fetchTeachers': // NEW
+        result = getAllTeachers();
+        break;
       case 'createTeacher':
         result = createTeacher(payload);
         break;
@@ -45,8 +49,14 @@ function handleRequest(e) {
       case 'fetchStudentsByClass':
         result = getStudentsByClass(payload.className);
         break;
+      case 'fetchAllStudents': // NEW
+        result = getAllStudents();
+        break;
       case 'createStudent':
         result = createStudent(payload);
+        break;
+      case 'importStudents': // NEW
+        result = importStudents(payload.students);
         break;
 
       // Transaksi (Laporan.gs)
