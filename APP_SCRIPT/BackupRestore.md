@@ -2,6 +2,13 @@
 /**
  * MODULE: BACKUP & RESTORE
  * Utilitas untuk mengamankan data sekolah dengan integrasi Google Drive
+ * 
+ * DEPENDENSI PERIZINAN (PENTING):
+ * File ini menggunakan layanan `DriveApp` untuk membuat folder dan file backup.
+ * Agar script ini berjalan, pastikan TIDAK ADA tag '@OnlyCurrentDoc' di file 'Pengaturan.gs' 
+ * atau file manapun dalam project ini.
+ * 
+ * Jika tag tersebut aktif, script akan error: "Exception: You do not have permission to call DriveApp..."
  */
 
 const BACKUP_FOLDER_NAME = "ElMosthofa_Backups";

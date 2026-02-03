@@ -1,8 +1,10 @@
 
 /**
- * @OnlyCurrentDoc (REMOVED: To allow DriveApp access for Backups)
  * MODULE: PENGATURAN SISTEM
  * Konfigurasi utama database dan schema
+ * 
+ * PENTING: Jangan tambahkan tag OnlyCurrentDoc di file ini.
+ * Fitur Backup membutuhkan akses penuh ke DriveApp untuk membuat folder dan file JSON.
  */
 
 // --- KONFIGURASI NAMA SHEET ---

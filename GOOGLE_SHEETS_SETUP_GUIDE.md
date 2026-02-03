@@ -42,6 +42,7 @@ Karena sistem ini menggunakan arsitektur modular, Anda perlu membuat beberapa fi
     **A. File: `Pengaturan.gs`**
     *   Copy isi dari `APP_SCRIPT/Pengaturan.md`
     *   *(File ini berisi konfigurasi database & fungsi helper global)*
+    *   **PENTING:** Pastikan TIDAK ADA baris `@OnlyCurrentDoc` di file ini agar fitur Backup berfungsi.
 
     **B. File: `DataGuru.gs`**
     *   Copy isi dari `APP_SCRIPT/DataGuru.md`
@@ -61,7 +62,7 @@ Karena sistem ini menggunakan arsitektur modular, Anda perlu membuat beberapa fi
     
     **F. File: `BackupRestore.gs`**
     *   Copy isi dari `APP_SCRIPT/BackupRestore.md`
-    *   *(Logic backup data)*
+    *   *(Logic backup data ke Google Drive)*
 
     **G. File: `Code.gs`** (File default biasanya sudah ada, tinggal rename/timpa)
     *   Copy isi dari `APP_SCRIPT/Code.md`
@@ -82,14 +83,24 @@ Langkah ini penting agar aplikasi bisa mengirim dan mengambil data.
     *   *(Catatan: Pilihan 'Anyone' sangat penting agar aplikasi React bisa mengakses database tanpa login Google)*.
 5.  Klik **Deploy**.
 6.  Akan muncul jendela "Authorization required". Klik **Review permissions**.
-7.  Pilih akun Google Anda.
-8.  Jika muncul peringatan "Google hasn’t verified this app", klik **Advanced** > **Go to ... (unsafe)** > **Allow**.
-9.  Salin **Web App URL** yang muncul (Link berawalan `https://script.google.com/macros/s/...`).
+    *   Jika Script meminta izin akses ke **Google Drive** (See, edit, create, and delete...), Anda **WAJIB MENGIZINKANNYA**. Izin ini diperlukan agar fitur Backup bisa menyimpan file JSON.
+7.  Jika muncul peringatan "Google hasn’t verified this app", klik **Advanced** > **Go to ... (unsafe)** > **Allow**.
+8.  Salin **Web App URL** yang muncul (Link berawalan `https://script.google.com/macros/s/...`).
 
 ## 5. Koneksi ke Aplikasi
 1.  Kembali ke kodingan aplikasi ini.
 2.  Buka file `services/api.ts`.
 3.  Cari variabel `GOOGLE_SCRIPT_URL` di bagian atas.
-4.  Tempel URL yang sudah disalin tadi ke situ.OK
+4.  Tempel URL yang sudah disalin tadi ke situ.
+
+## Troubleshooting Error Backup
+Jika Anda menemui error: **"Exception: You do not have permission to call DriveApp.getFoldersByName..."**
+
+1.  Buka Editor Apps Script.
+2.  Buka file `Pengaturan.gs`.
+3.  Cek apakah ada teks `@OnlyCurrentDoc` di bagian paling atas (di dalam komentar). **Hapus baris tersebut.**
+4.  Lakukan **New Deployment** (Deploy > New deployment).
+5.  Saat deploy, Script akan meminta izin akses baru untuk Google Drive. Klik **Review Permissions** dan **Allow**.
+6.  Update URL di `services/api.ts` dengan URL deployment yang baru.
 
 Selesai! Aplikasi sekarang sudah terhubung dengan database Google Sheets.
