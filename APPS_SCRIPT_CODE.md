@@ -17,6 +17,14 @@ const SHEETS = {
   LOGS: 'System_Logs'
 };
 
+// Define Headers for Automatic Sheet Creation
+const SHEET_HEADERS = {
+  [SHEETS.USERS]: ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar'],
+  [SHEETS.STUDENTS]: ['id', 'name', 'nis', 'className', 'gender', 'parentPhone', 'address'],
+  [SHEETS.ATTENDANCE]: ['log_id', 'date', 'classId', 'subject', 'teacherId', 'topic', 'studentId', 'studentName', 'status', 'note', 'timestamp'],
+  [SHEETS.LOGS]: ['id', 'user', 'action', 'timestamp', 'status']
+};
+
 // --- HTTP HANDLERS ---
 
 function doPost(e) {
@@ -89,7 +97,6 @@ function handleLogin(email, password) {
   if (!user) throw new Error('Email tidak ditemukan.');
   
   // Basic password check (In production, use hashing, but for this GAS scope, direct compare)
-  // Ensure the spreadsheet has a 'password' column
   if (String(user.password) !== String(password)) {
     throw new Error('Password salah. Silakan coba lagi.');
   }
@@ -110,8 +117,7 @@ function getStudentsByClass(className) {
 }
 
 function saveAttendance(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.ATTENDANCE);
+  const sheet = getSheetOrSetup(SHEETS.ATTENDANCE);
   
   // Payload contains records array
   const records = payload.records;
@@ -140,8 +146,7 @@ function saveAttendance(payload) {
 }
 
 function createTeacher(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.USERS);
+  const sheet = getSheetOrSetup(SHEETS.USERS);
   
   // Check duplicate
   const users = getData(SHEETS.USERS);
@@ -150,7 +155,6 @@ function createTeacher(payload) {
   const newId = 'T_' + Math.floor(Math.random() * 10000);
   
   // Columns: id, name, email, password, role, nip, phone, subject, gender, status, avatar
-  // Make sure to match the column order in your sheet
   sheet.appendRow([
     newId,
     payload.fullName,
@@ -170,8 +174,7 @@ function createTeacher(payload) {
 
 // BULK IMPORT LOGIC
 function importTeachers(teachers) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.USERS);
+  const sheet = getSheetOrSetup(SHEETS.USERS);
   const existingUsers = getData(SHEETS.USERS);
   const existingEmails = new Set(existingUsers.map(u => u.email));
   
@@ -210,8 +213,7 @@ function importTeachers(teachers) {
 }
 
 function createStudent(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEETS.STUDENTS);
+  const sheet = getSheetOrSetup(SHEETS.STUDENTS);
   
   const newId = 'S' + Date.now();
   
@@ -284,10 +286,66 @@ function getDashboardStats() {
 
 // --- HELPERS ---
 
-function getData(sheetName) {
+/**
+ * Gets the Sheet, or creates it if it doesn't exist.
+ * Applies Headers and Data Validation automatically.
+ */
+function getSheetOrSetup(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) return [];
+  let sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    const headers = SHEET_HEADERS[sheetName];
+    
+    if (headers) {
+      // 1. Set Headers
+      sheet.appendRow(headers);
+      sheet.setFrozenRows(1);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+      
+      // 2. Apply Specific Validations
+      if (sheetName === SHEETS.USERS) {
+        // Validation for ROLE (Column E / 5th)
+        // Values: TEACHER, COUNSELOR, PRINCIPAL, ADMIN
+        const roleRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList(['TEACHER', 'COUNSELOR', 'PRINCIPAL', 'ADMIN'], true)
+          .setAllowInvalid(true)
+          .build();
+        sheet.getRange("E2:E").setDataValidation(roleRule);
+
+        // Validation for GENDER (Column I / 9th)
+        const genderRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList(['L', 'P'], true)
+          .setAllowInvalid(true)
+          .build();
+        sheet.getRange("I2:I").setDataValidation(genderRule);
+        
+        // Validation for STATUS (Column J / 10th)
+        const statusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList(['Active', 'Inactive'], true)
+          .setAllowInvalid(true)
+          .build();
+        sheet.getRange("J2:J").setDataValidation(statusRule);
+      } else if (sheetName === SHEETS.ATTENDANCE) {
+        // Validation for STATUS (Column I / 9th)
+        const attStatusRule = SpreadsheetApp.newDataValidation()
+          .requireValueInList(['Hadir', 'Sakit', 'Izin', 'Alpha'], true)
+          .setAllowInvalid(true)
+          .build();
+        sheet.getRange("I2:I").setDataValidation(attStatusRule);
+      }
+    }
+  }
+  return sheet;
+}
+
+function getData(sheetName) {
+  // Use getSheetOrSetup to ensure db integrity
+  const sheet = getSheetOrSetup(sheetName);
+  
+  // Guard clause if sheet is empty (only header or less)
+  if (sheet.getLastRow() < 2) return [];
   
   const data = sheet.getDataRange().getValues();
   const headers = data.shift(); // Remove header row
@@ -303,12 +361,7 @@ function getData(sheetName) {
 }
 
 function logSystem(user, action) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEETS.LOGS);
-  if(!sheet) {
-    sheet = ss.insertSheet(SHEETS.LOGS);
-    sheet.appendRow(['id', 'user', 'action', 'timestamp', 'status']);
-  }
+  const sheet = getSheetOrSetup(SHEETS.LOGS);
   sheet.appendRow([Utilities.getUuid(), user, action, new Date(), 'Success']);
 }
 
