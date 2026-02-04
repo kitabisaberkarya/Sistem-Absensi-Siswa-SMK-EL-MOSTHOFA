@@ -1,4 +1,5 @@
 
+
 /**
  * MODULE: PENGATURAN SISTEM
  * Konfigurasi utama database dan schema
@@ -12,7 +13,9 @@ const SHEETS = {
   USERS: 'Users',
   STUDENTS: 'Students',
   ATTENDANCE: 'Attendance_Log',
-  LOGS: 'System_Logs'
+  LOGS: 'System_Logs',
+  MAJORS: 'Majors',
+  SUBJECTS: 'Subjects'
 };
 
 // --- DEFINISI HEADER DATABASE ---
@@ -20,7 +23,9 @@ const SHEET_HEADERS = {
   [SHEETS.USERS]: ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar'],
   [SHEETS.STUDENTS]: ['id', 'name', 'nis', 'className', 'gender', 'parentPhone', 'address'],
   [SHEETS.ATTENDANCE]: ['log_id', 'date', 'classId', 'subject', 'teacherId', 'topic', 'studentId', 'studentName', 'status', 'note', 'timestamp'],
-  [SHEETS.LOGS]: ['id', 'user', 'action', 'timestamp', 'status']
+  [SHEETS.LOGS]: ['id', 'user', 'action', 'timestamp', 'status'],
+  [SHEETS.MAJORS]: ['id', 'code', 'name'],
+  [SHEETS.SUBJECTS]: ['id', 'code', 'name', 'category']
 };
 
 // --- UTILS: GLOBAL HELPERS (Digunakan di semua file) ---
@@ -49,6 +54,8 @@ function getSheetOrSetup(sheetName) {
         _setValidation(sheet, "J2:J", ['Active', 'Inactive']);
       } else if (sheetName === SHEETS.ATTENDANCE) {
         _setValidation(sheet, "I2:I", ['Hadir', 'Sakit', 'Izin', 'Alpha']);
+      } else if (sheetName === SHEETS.SUBJECTS) {
+        _setValidation(sheet, "D2:D", ['Umum', 'Peminatan', 'Kejuruan', 'Mulok']);
       }
     }
   }

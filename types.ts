@@ -1,4 +1,5 @@
 
+
 export enum Role {
   TEACHER = 'TEACHER',       // Guru Mapel
   COUNSELOR = 'COUNSELOR',   // Guru BK
@@ -6,7 +7,7 @@ export enum Role {
   ADMIN = 'ADMIN',           // Admin Sistem
 }
 
-export type ViewState = 'dashboard' | 'teachers' | 'students' | 'reports' | 'mailbox' | 'settings' | 'backup';
+export type ViewState = 'dashboard' | 'teachers' | 'students' | 'academics' | 'reports' | 'mailbox' | 'settings' | 'backup';
 
 export interface User {
   id: string;
@@ -54,6 +55,21 @@ export interface SubmissionPayload {
   records: AttendanceRecord[];
 }
 
+// --- Academic Types (New) ---
+
+export interface Major {
+  id: string;
+  code: string; // e.g., TKJ, IPA
+  name: string; // e.g., Teknik Komputer Jaringan
+}
+
+export interface Subject {
+  id: string;
+  code: string;
+  name: string;
+  category: string; // e.g., Muatan Nasional, Kejuruan
+}
+
 // --- Bulk Import Types ---
 
 export interface ImportedTeacher {
@@ -82,6 +98,8 @@ export interface BackupData {
   students: any[];
   attendance: any[];
   logs: any[];
+  majors?: any[];    // Added for backup compatibility
+  subjects?: any[];  // Added for backup compatibility
 }
 
 export interface BackupResponse {

@@ -1,10 +1,11 @@
 
+
 import { MOCK_STUDENTS } from '../constants';
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse } from '../types';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxU7feDEDf6tI1fUPdnmI0rBfoNAYMNCo6okytRolDq-XfEEAZnSzm5qSLz-HNmycpDyQ/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfJZfEACNUBkS1g7gQ_J8YNnAWlL5FRjXDpH0eIiQlWrhc7fMHD9rNN6ic3UodVejl7w/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -69,7 +70,6 @@ export const ApiService = {
     const data = await fetchScript('fetchTeachers');
     
     // STRICT CHECK: Only return Mock if data is explicitly null (URL not configured)
-    // If data comes back as undefined or empty array from API, we trust the API.
     if (data === null) {
         return Array.from({ length: 10 }).map((_, i) => ({
             id: `T_${i}`,
@@ -95,7 +95,6 @@ export const ApiService = {
   },
 
   createTeacher: async (payload: CreateTeacherPayload): Promise<{ success: boolean; message: string; id: string }> => {
-    // Ensure payload includes password
     const data = await fetchScript('createTeacher', payload);
     if (data === null) {
          if(payload.email.includes("error")) throw new Error("Email exists (Mock)");
@@ -134,12 +133,66 @@ export const ApiService = {
     return data;
   },
 
+  // --- ACADEMIC SERVICES (NEW) ---
+
+  fetchMajors: async (): Promise<Major[]> => {
+    const data = await fetchScript('fetchMajors');
+    if (data === null) {
+        // Mock Majors
+        return [
+            { id: 'M1', code: 'IPA', name: 'Ilmu Pengetahuan Alam' },
+            { id: 'M2', code: 'IPS', name: 'Ilmu Pengetahuan Sosial' },
+            { id: 'M3', code: 'TKJ', name: 'Teknik Komputer Jaringan' },
+            { id: 'M4', code: 'TBSM', name: 'Teknik Bisnis Sepeda Motor' }
+        ];
+    }
+    return data as Major[];
+  },
+
+  createMajor: async (payload: { code: string; name: string }): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('createMajor', payload);
+    if (data === null) return { success: true, message: 'Jurusan berhasil ditambahkan (MOCK).' };
+    return { success: true, message: data.message };
+  },
+  
+  deleteMajor: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('deleteMajor', { id });
+    if (data === null) return { success: true, message: 'Jurusan dihapus (MOCK).' };
+    return { success: true, message: data.message };
+  },
+
+  fetchSubjects: async (): Promise<Subject[]> => {
+    const data = await fetchScript('fetchSubjects');
+    if (data === null) {
+        // Mock Subjects
+        return [
+            { id: 'SUB1', code: 'MAT', name: 'Matematika', category: 'Umum' },
+            { id: 'SUB2', code: 'BIN', name: 'Bahasa Indonesia', category: 'Umum' },
+            { id: 'SUB3', code: 'ENG', name: 'Bahasa Inggris', category: 'Umum' },
+            { id: 'SUB4', code: 'FIS', name: 'Fisika', category: 'Peminatan' },
+            { id: 'SUB5', code: 'PROD1', name: 'Administrasi Infrastruktur Jaringan', category: 'Kejuruan' }
+        ];
+    }
+    return data as Subject[];
+  },
+
+  createSubject: async (payload: { code: string; name: string; category: string }): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('createSubject', payload);
+    if (data === null) return { success: true, message: 'Mapel berhasil ditambahkan (MOCK).' };
+    return { success: true, message: data.message };
+  },
+
+  deleteSubject: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('deleteSubject', { id });
+    if (data === null) return { success: true, message: 'Mapel dihapus (MOCK).' };
+    return { success: true, message: data.message };
+  },
+
   // --- BACKUP & RESTORE SERVICES ---
 
   createBackup: async (): Promise<BackupResponse> => {
     const data = await fetchScript('backupDatabase');
     if (data === null) {
-        // Mock Backup
         return {
             success: true,
             message: "Backup created (MOCK)",
@@ -150,7 +203,9 @@ export const ApiService = {
                 users: [],
                 students: [],
                 attendance: [],
-                logs: []
+                logs: [],
+                majors: [],
+                subjects: []
             }
         };
     }
@@ -165,8 +220,6 @@ export const ApiService = {
 
   fetchDashboardStats: async (): Promise<DashboardStats> => {
     const data = await fetchScript('fetchDashboardStats');
-    
-    // Mock Fallback
     if (data === null) {
       return {
         totalStudents: 450,
@@ -200,8 +253,6 @@ export const ApiService = {
         activeUsers: 1
       };
     }
-    
     return data as DashboardStats;
   }
 };
-    

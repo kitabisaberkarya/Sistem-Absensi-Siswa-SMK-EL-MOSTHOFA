@@ -1,7 +1,8 @@
 
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database } from 'lucide-react';
+import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database, BookMarked } from 'lucide-react';
 import { Role, ViewState } from '../types';
 import clsx from 'clsx';
 
@@ -68,6 +69,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             </button>
             <button onClick={() => handleNavClick('students')} className="w-full text-left">
               <NavItem icon={GraduationCap} label="Data Siswa" active={currentView === 'students'} isOpen={sidebarOpen} />
+            </button>
+            <button onClick={() => handleNavClick('academics')} className="w-full text-left">
+              <NavItem icon={BookMarked} label="Data Akademik" active={currentView === 'academics'} isOpen={sidebarOpen} />
             </button>
             <button onClick={() => handleNavClick('reports')} className="w-full text-left">
               <NavItem icon={FileText} label="Laporan" active={currentView === 'reports'} isOpen={sidebarOpen} />

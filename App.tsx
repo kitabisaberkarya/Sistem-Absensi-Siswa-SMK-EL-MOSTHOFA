@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
@@ -7,6 +8,7 @@ import { AttendancePage } from './features/teacher/AttendancePage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { TeachersPage } from './features/admin/TeachersPage';
 import { StudentsPage } from './features/admin/StudentsPage';
+import { AcademicsPage } from './features/admin/AcademicsPage';
 import { ReportsPage } from './features/admin/ReportsPage';
 import { MailboxPage } from './features/admin/MailboxPage';
 import { SettingsPage } from './features/admin/SettingsPage';
@@ -38,6 +40,7 @@ const AppContent = () => {
       case 'dashboard': return <DashboardPage />;
       case 'teachers': return <TeachersPage />;
       case 'students': return <StudentsPage />;
+      case 'academics': return <AcademicsPage />;
       case 'reports': return <ReportsPage />;
       case 'mailbox': return <MailboxPage />;
       case 'settings': return <SettingsPage />;
