@@ -19,6 +19,7 @@ const fetchScript = async (action: string, payload: any = {}) => {
   try {
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
+      cache: 'no-store', // Disable caching to ensure fresh data
       body: JSON.stringify({ action, ...payload }),
     });
     
@@ -37,7 +38,7 @@ export const ApiService = {
     const data = await fetchScript('login', { email, password });
     
     // Fallback to Mock if script not ready
-    if (!data) {
+    if (data === null) {
        // Mock Login Logic
        if (email.includes('admin')) return { id: 'u_admin_01', name: 'Administrator IT', email, role: Role.ADMIN, avatar: 'https://ui-avatars.com/api/?name=Admin&background=1e1b4b&color=fff' };
        if (email.includes('kepsek')) return { id: 'u_kepsek_01', name: 'Dr. Hartono, M.Pd', email, role: Role.PRINCIPAL, avatar: 'https://ui-avatars.com/api/?name=Kepala+Sekolah&background=0f172a&color=fff' };
@@ -52,21 +53,24 @@ export const ApiService = {
   fetchStudentsByClass: async (className: string): Promise<Student[]> => {
     const data = await fetchScript('fetchStudentsByClass', { className });
     // Mock Fallback
-    if (!data) return MOCK_STUDENTS.filter(s => s.className === className);
-    return data as Student[];
+    if (data === null) return MOCK_STUDENTS.filter(s => s.className === className);
+    return (data || []) as Student[];
   },
 
   // NEW: Fetch all students for Admin List
   fetchAllStudents: async (): Promise<Student[]> => {
     const data = await fetchScript('fetchAllStudents');
-    if (!data) return MOCK_STUDENTS;
-    return data as Student[];
+    if (data === null) return MOCK_STUDENTS;
+    return (data || []) as Student[];
   },
 
   // NEW: Fetch all teachers for Admin List
   fetchTeachers: async (): Promise<User[]> => {
     const data = await fetchScript('fetchTeachers');
-    if (!data) {
+    
+    // STRICT CHECK: Only return Mock if data is explicitly null (URL not configured)
+    // If data comes back as undefined or empty array from API, we trust the API.
+    if (data === null) {
         return Array.from({ length: 10 }).map((_, i) => ({
             id: `T_${i}`,
             name: ['Budi Santoso, S.Pd', 'Siti Aminah, M.Pd', 'Joko Anwar, S.Si', 'Rina Nose, S.Hum'][i % 4],
@@ -80,19 +84,20 @@ export const ApiService = {
             gender: i % 2 === 0 ? 'L' : 'P'
         }));
     }
-    return data;
+    
+    return (data || []) as User[];
   },
 
   submitAttendance: async (payload: SubmissionPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('submitAttendance', payload);
-    if (!data) return { success: true, message: 'Data absensi berhasil disimpan! (MOCK)' };
+    if (data === null) return { success: true, message: 'Data absensi berhasil disimpan! (MOCK)' };
     return { success: true, message: data.message };
   },
 
   createTeacher: async (payload: CreateTeacherPayload): Promise<{ success: boolean; message: string; id: string }> => {
     // Ensure payload includes password
     const data = await fetchScript('createTeacher', payload);
-    if (!data) {
+    if (data === null) {
          if(payload.email.includes("error")) throw new Error("Email exists (Mock)");
          return { success: true, message: `Guru ${payload.fullName} berhasil ditambahkan (MOCK).`, id: `T_MOCK_${Date.now()}` };
     }
@@ -101,7 +106,7 @@ export const ApiService = {
 
   updateTeacher: async (payload: UpdateTeacherPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('updateTeacher', payload);
-    if (!data) {
+    if (data === null) {
          return { success: true, message: `Data ${payload.fullName} berhasil diperbarui (MOCK).` };
     }
     return { success: true, message: data.message };
@@ -109,7 +114,7 @@ export const ApiService = {
 
   importTeachers: async (teachers: ImportedTeacher[]): Promise<{ success: boolean; message: string; count: number }> => {
     const data = await fetchScript('importTeachers', { teachers });
-    if (!data) {
+    if (data === null) {
       return { success: true, message: `Berhasil mengimpor ${teachers.length} guru (MOCK).`, count: teachers.length };
     }
     return data;
@@ -117,13 +122,13 @@ export const ApiService = {
 
   createStudent: async (payload: CreateStudentPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createStudent', payload);
-    if (!data) return { success: true, message: 'Siswa berhasil ditambahkan (MOCK).' };
+    if (data === null) return { success: true, message: 'Siswa berhasil ditambahkan (MOCK).' };
     return { success: true, message: data.message };
   },
 
   importStudents: async (students: ImportedStudent[]): Promise<{ success: boolean; message: string; count: number }> => {
     const data = await fetchScript('importStudents', { students });
-    if (!data) {
+    if (data === null) {
       return { success: true, message: `Berhasil mengimpor ${students.length} siswa (MOCK).`, count: students.length };
     }
     return data;
@@ -133,7 +138,7 @@ export const ApiService = {
 
   createBackup: async (): Promise<BackupResponse> => {
     const data = await fetchScript('backupDatabase');
-    if (!data) {
+    if (data === null) {
         // Mock Backup
         return {
             success: true,
@@ -154,7 +159,7 @@ export const ApiService = {
 
   restoreDatabase: async (backupData: BackupData): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('restoreDatabase', { data: backupData });
-    if (!data) return { success: true, message: "Database restored successfully (MOCK)" };
+    if (data === null) return { success: true, message: "Database restored successfully (MOCK)" };
     return data;
   },
 
@@ -162,7 +167,7 @@ export const ApiService = {
     const data = await fetchScript('fetchDashboardStats');
     
     // Mock Fallback
-    if (!data) {
+    if (data === null) {
       return {
         totalStudents: 450,
         attendanceRate: 94.2,
