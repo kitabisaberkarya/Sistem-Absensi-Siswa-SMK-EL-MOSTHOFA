@@ -141,7 +141,9 @@ function importTeachers(teachers) {
 
     teachers.forEach(t => {
       // Normalize email generation
-      const cleanCode = t.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+      // SAFETY CHECK: Ensure code is string before lowercase
+      const rawCode = t.code ? String(t.code) : '';
+      const cleanCode = rawCode.toLowerCase().replace(/[^a-z0-9]/g, '');
       const email = `guru.${cleanCode}@sekolah.sch.id`;
       
       if (!existingEmails.has(email)) {
@@ -151,13 +153,13 @@ function importTeachers(teachers) {
         // ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar']
         newRows.push([
           newId,                // id
-          t.name,               // name
+          String(t.name || ''), // name (safe string)
           email,                // email
-          '123456',            // password (default)
+          '123456',             // password (default)
           'TEACHER',            // role
           '-',                  // nip
           '-',                  // phone
-          t.subject,            // subject
+          String(t.subject || ''), // subject (safe string)
           'L',                  // gender (default)
           'Active',             // status
           ''                    // avatar

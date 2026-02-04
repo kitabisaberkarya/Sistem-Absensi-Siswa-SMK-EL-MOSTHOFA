@@ -46,7 +46,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
       setParsedData(detectedTeachers);
       setStep('preview');
     } else {
-      alert("Tidak ada data guru yang terdeteksi. Pastikan format CSV sesuai (Jadwal Pelajaran).");
+      alert("Tidak ada data guru yang terdeteksi dari text. Pastikan format CSV sesuai.");
     }
   };
 
@@ -64,8 +64,9 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
     XLSX.writeFile(wb, "Template_Import_Guru.xlsx");
   };
 
-  // Helper untuk membersihkan key object (menghapus spasi & lowercase)
-  const normalizeKey = (key: string) => key.toString().toLowerCase().trim();
+  // Helper: Hapus semua karakter non-alphanumeric dan lowercase
+  // "Nama Guru" -> "namaguru", "Kode..." -> "kode"
+  const normalizeKey = (key: string) => key.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,19 +84,19 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
         // Convert ke JSON raw
         const rawData = XLSX.utils.sheet_to_json(sheet);
 
-        // Map data dengan normalisasi key agar tidak sensitif case/spasi
+        // Map data dengan normalisasi key lebih ketat
         const teachers: ImportedTeacher[] = rawData.map((row: any) => {
-            // Buat map normalized keys untuk pencarian aman
             const normalizedRow: Record<string, any> = {};
             Object.keys(row).forEach(k => {
                 normalizedRow[normalizeKey(k)] = row[k];
             });
 
+            // PENTING: Gunakan String() untuk memaksa tipe data teks (cegah error di backend jika kode berupa angka)
             return {
-                no: (normalizedRow['no'] || '0').toString(),
-                name: normalizedRow['nama guru'] || normalizedRow['nama'] || normalizedRow['name'] || '',
-                code: normalizedRow['kode'] || normalizedRow['code'] || '',
-                subject: normalizedRow['mata pelajaran'] || normalizedRow['subject'] || normalizedRow['mapel'] || ''
+                no: String(normalizedRow['no'] || '0'),
+                name: String(normalizedRow['namaguru'] || normalizedRow['nama'] || normalizedRow['name'] || ''),
+                code: String(normalizedRow['kode'] || normalizedRow['code'] || ''),
+                subject: String(normalizedRow['matapelajaran'] || normalizedRow['subject'] || normalizedRow['mapel'] || '')
             };
         }).filter(t => t.name && t.name.trim() !== '' && t.code && t.code.trim() !== '');
 
@@ -103,7 +104,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
             setParsedData(teachers);
             setStep('preview');
         } else {
-            alert("Format Excel tidak dikenali atau data kosong. Pastikan menggunakan Header: No, Nama Guru, Kode, Mata Pelajaran.");
+            alert("Format Excel tidak dikenali. Pastikan header: No, Nama Guru, Kode, Mata Pelajaran.");
         }
       } catch (err) {
         console.error(err);
@@ -119,12 +120,10 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const handleImport = async () => {
     setLoading(true);
     try {
-      // Validasi terakhir
       if (parsedData.length === 0) throw new Error("Tidak ada data untuk diimport.");
       
       const response = await ApiService.importTeachers(parsedData);
       
-      // Cek apakah response valid dari backend
       if (response && response.success) {
           setStep('success');
       } else {
@@ -173,7 +172,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <p>
                   <strong>Metode 1:</strong> Salin isi file CSV (separator titik koma) ke kolom di bawah.<br/>
-                  <strong>Metode 2:</strong> Gunakan tombol <strong>Upload Excel</strong> dengan format sesuai template.
+                  <strong>Metode 2 (Disarankan):</strong> Gunakan tombol <strong>Upload Excel</strong> dengan format sesuai template.
                 </p>
               </div>
               <textarea
@@ -209,7 +208,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                          <td className="px-6 py-3 font-mono font-bold text-brand-600">{row.code}</td>
                          <td className="px-6 py-3 font-medium text-gray-900">{row.name}</td>
                          <td className="px-6 py-3 text-gray-600">{row.subject}</td>
-                         <td className="px-6 py-3 text-gray-400 italic text-xs">guru.{row.code.toLowerCase().replace(/[^a-z0-9]/g, '')}@sekolah.sch.id</td>
+                         <td className="px-6 py-3 text-gray-400 italic text-xs">guru.{String(row.code).toLowerCase().replace(/[^a-z0-9]/g, '')}@sekolah.sch.id</td>
                        </tr>
                      ))}
                    </tbody>
