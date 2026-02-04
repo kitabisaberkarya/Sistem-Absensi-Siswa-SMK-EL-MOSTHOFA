@@ -115,41 +115,70 @@ function updateTeacher(payload) {
   return { message: 'User updated successfully' };
 }
 
+/**
+ * BULK IMPORT TEACHERS (OPTIMIZED)
+ */
 function importTeachers(teachers) {
-  const sheet = getSheetOrSetup(SHEETS.USERS);
-  const existingUsers = getData(SHEETS.USERS);
-  const existingEmails = new Set(existingUsers.map(u => u.email));
-  
-  const newRows = [];
-  let count = 0;
+  const lock = LockService.getScriptLock();
+  // Wait for up to 10 seconds for other processes to finish.
+  lock.tryLock(10000);
 
-  teachers.forEach(t => {
-    const email = `guru.${t.code.toLowerCase().trim()}@sekolah.sch.id`;
+  try {
+    const sheet = getSheetOrSetup(SHEETS.USERS);
     
-    if (!existingEmails.has(email)) {
-      const newId = 'T_' + t.code + '_' + Math.floor(Math.random() * 1000);
-      newRows.push([
-        newId,
-        t.name,
-        email,
-        '123456',
-        'TEACHER',
-        '-',
-        '-',
-        t.subject,
-        'L', 
-        'Active',
-        ''
-      ]);
-      existingEmails.add(email);
-      count++;
+    // Get all existing emails efficiently to check for duplicates
+    // Columns: id(0), name(1), email(2)
+    const data = sheet.getDataRange().getValues();
+    const existingEmails = new Set();
+    
+    // Skip header row
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][2]) existingEmails.add(data[i][2].toString().toLowerCase());
     }
-  });
+    
+    const newRows = [];
+    let count = 0;
 
-  if (newRows.length > 0) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    teachers.forEach(t => {
+      // Normalize email generation
+      const cleanCode = t.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const email = `guru.${cleanCode}@sekolah.sch.id`;
+      
+      if (!existingEmails.has(email)) {
+        const newId = 'T_' + cleanCode.toUpperCase() + '_' + Math.floor(Math.random() * 9999);
+        
+        // PUSH ROW - Must match SHEET_HEADERS order strictly:
+        // ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar']
+        newRows.push([
+          newId,                // id
+          t.name,               // name
+          email,                // email
+          '123456',            // password (default)
+          'TEACHER',            // role
+          '-',                  // nip
+          '-',                  // phone
+          t.subject,            // subject
+          'L',                  // gender (default)
+          'Active',             // status
+          ''                    // avatar
+        ]);
+        
+        existingEmails.add(email); // Add to Set to prevent duplicates within the same import batch
+        count++;
+      }
+    });
+
+    if (newRows.length > 0) {
+      // Batch write to sheet
+      sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    }
+
+    logSystem('ADMIN', `Bulk Imported ${count} Teachers via Excel`);
+    return { success: true, message: 'Bulk import successful', count: count };
+    
+  } catch (e) {
+    throw new Error("Import Failed: " + e.toString());
+  } finally {
+    lock.releaseLock();
   }
-
-  logSystem('ADMIN', `Bulk Imported ${count} Teachers`);
-  return { message: 'Bulk import successful', count: count };
 }

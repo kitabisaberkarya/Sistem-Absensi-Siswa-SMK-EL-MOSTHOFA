@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { X, FileSpreadsheet, Upload, CheckCircle2, AlertCircle, Download, FileUp } from 'lucide-react';
+import { X, FileSpreadsheet, Upload, CheckCircle2, AlertCircle, Download, FileUp, Loader2 } from 'lucide-react';
 import { Button } from './Button';
 import { ImportedTeacher } from '../types';
 import { ApiService } from '../services/api';
@@ -51,26 +51,21 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   const handleDownloadTemplate = () => {
-    // Definisi Header dan Data Dummy
     const headers = ["No", "Nama Guru", "Kode", "Mata Pelajaran"];
     const data = [
       ["1", "H. Budi Santoso, S.Pd", "BS", "Matematika"],
       ["2", "Siti Aminah, M.Pd", "SA", "Bahasa Inggris"],
     ];
 
-    // Buat Worksheet
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    
-    // Set lebar kolom agar rapi
     ws['!cols'] = [{ wch: 5 }, { wch: 30 }, { wch: 10 }, { wch: 25 }];
-
-    // Buat Workbook
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template Guru");
-
-    // Download
     XLSX.writeFile(wb, "Template_Import_Guru.xlsx");
   };
+
+  // Helper untuk membersihkan key object (menghapus spasi & lowercase)
+  const normalizeKey = (key: string) => key.toString().toLowerCase().trim();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,28 +79,37 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        
+        // Convert ke JSON raw
+        const rawData = XLSX.utils.sheet_to_json(sheet);
 
-        // Map data Excel ke format internal
-        const teachers: ImportedTeacher[] = jsonData.map((row: any) => ({
-            no: (row['No'] || row['no'] || '0').toString(),
-            name: row['Nama Guru'] || row['name'] || '',
-            code: row['Kode'] || row['code'] || '',
-            subject: row['Mata Pelajaran'] || row['subject'] || ''
-        })).filter(t => t.name && t.code);
+        // Map data dengan normalisasi key agar tidak sensitif case/spasi
+        const teachers: ImportedTeacher[] = rawData.map((row: any) => {
+            // Buat map normalized keys untuk pencarian aman
+            const normalizedRow: Record<string, any> = {};
+            Object.keys(row).forEach(k => {
+                normalizedRow[normalizeKey(k)] = row[k];
+            });
+
+            return {
+                no: (normalizedRow['no'] || '0').toString(),
+                name: normalizedRow['nama guru'] || normalizedRow['nama'] || normalizedRow['name'] || '',
+                code: normalizedRow['kode'] || normalizedRow['code'] || '',
+                subject: normalizedRow['mata pelajaran'] || normalizedRow['subject'] || normalizedRow['mapel'] || ''
+            };
+        }).filter(t => t.name && t.name.trim() !== '' && t.code && t.code.trim() !== '');
 
         if (teachers.length > 0) {
             setParsedData(teachers);
             setStep('preview');
         } else {
-            alert("Data kosong atau format template tidak sesuai (Header: No, Nama Guru, Kode, Mata Pelajaran).");
+            alert("Format Excel tidak dikenali atau data kosong. Pastikan menggunakan Header: No, Nama Guru, Kode, Mata Pelajaran.");
         }
       } catch (err) {
         console.error(err);
         alert("Gagal membaca file Excel. Pastikan file tidak rusak.");
       } finally {
         setLoading(false);
-        // Reset input agar bisa upload file yang sama jika perlu
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
@@ -115,10 +119,19 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const handleImport = async () => {
     setLoading(true);
     try {
-      await ApiService.importTeachers(parsedData);
-      setStep('success');
-    } catch (error) {
-      alert("Gagal mengimpor data. Periksa koneksi atau format data.");
+      // Validasi terakhir
+      if (parsedData.length === 0) throw new Error("Tidak ada data untuk diimport.");
+      
+      const response = await ApiService.importTeachers(parsedData);
+      
+      // Cek apakah response valid dari backend
+      if (response && response.success) {
+          setStep('success');
+      } else {
+          throw new Error(response?.message || "Gagal import data.");
+      }
+    } catch (error: any) {
+      alert(`Gagal: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -142,7 +155,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <FileSpreadsheet className="w-6 h-6" />
              </div>
              <div>
-                <h3 className="text-xl font-bold text-gray-900">Import Data Jadwal</h3>
+                <h3 className="text-xl font-bold text-gray-900">Import Data Guru</h3>
                 <p className="text-sm text-gray-500">Mendukung Paste CSV (Legacy) atau Upload Excel Template.</p>
              </div>
           </div>
@@ -196,7 +209,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                          <td className="px-6 py-3 font-mono font-bold text-brand-600">{row.code}</td>
                          <td className="px-6 py-3 font-medium text-gray-900">{row.name}</td>
                          <td className="px-6 py-3 text-gray-600">{row.subject}</td>
-                         <td className="px-6 py-3 text-gray-400 italic text-xs">guru.{row.code.toLowerCase()}@sekolah.sch.id</td>
+                         <td className="px-6 py-3 text-gray-400 italic text-xs">guru.{row.code.toLowerCase().replace(/[^a-z0-9]/g, '')}@sekolah.sch.id</td>
                        </tr>
                      ))}
                    </tbody>
@@ -212,7 +225,8 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                  </div>
                  <h3 className="text-3xl font-bold text-gray-900 mb-2">Import Berhasil!</h3>
                  <p className="text-gray-500 max-w-md">
-                   {parsedData.length} data guru telah berhasil dimasukkan ke dalam database sistem. Akun pengguna telah dibuat secara otomatis.
+                   {parsedData.length} data guru telah berhasil dikirim ke database. 
+                   <br/><span className="text-sm text-gray-400">Jika data tidak muncul, pastikan URL Google Apps Script sudah benar.</span>
                  </p>
              </div>
           )}
@@ -253,7 +267,11 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
              <>
                <Button variant="ghost" onClick={handleReset}>Kembali</Button>
                <Button onClick={handleImport} isLoading={loading} className="bg-brand-600 hover:bg-brand-700">
-                  Proses Import
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses...
+                    </>
+                  ) : 'Proses Import'}
                </Button>
              </>
           )}
