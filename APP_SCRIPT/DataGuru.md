@@ -2,6 +2,9 @@
 
 /**
  * MODULE: MANAJEMEN PENGGUNA & GURU
+ * 
+ * Script ini menangani CRUD Guru dan fitur Import Massal.
+ * Copy paste isi file ini ke file "DataGuru.gs" di Google Apps Script Editor.
  */
 
 function handleLogin(email, password) {
@@ -116,7 +119,8 @@ function updateTeacher(payload) {
 }
 
 /**
- * BULK IMPORT TEACHERS (OPTIMIZED)
+ * BULK IMPORT TEACHERS (OPTIMIZED & ROBUST)
+ * Menerima payload: [{no, name, code, subject}, ...]
  */
 function importTeachers(teachers) {
   const lock = LockService.getScriptLock();
@@ -126,8 +130,8 @@ function importTeachers(teachers) {
   try {
     const sheet = getSheetOrSetup(SHEETS.USERS);
     
-    // Get all existing emails efficiently to check for duplicates
-    // Columns: id(0), name(1), email(2)
+    // Ambil data yang sudah ada untuk cek duplikasi (berdasarkan email)
+    // Kolom: id(0), name(1), email(2)
     const data = sheet.getDataRange().getValues();
     const existingEmails = new Set();
     
@@ -140,38 +144,42 @@ function importTeachers(teachers) {
     let count = 0;
 
     teachers.forEach(t => {
-      // Normalize email generation
-      // SAFETY CHECK: Ensure code is string before lowercase
+      // 1. Generate Email Unik dari Kode
       const rawCode = t.code ? String(t.code) : '';
       const cleanCode = rawCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Jika kode kosong, skip
+      if (!cleanCode) return;
+
       const email = `guru.${cleanCode}@sekolah.sch.id`;
       
+      // 2. Cek apakah email sudah ada di database atau di batch import ini
       if (!existingEmails.has(email)) {
         const newId = 'T_' + cleanCode.toUpperCase() + '_' + Math.floor(Math.random() * 9999);
         
-        // PUSH ROW - Must match SHEET_HEADERS order strictly:
+        // 3. Susun Baris (Wajib urut sesuai Header di Pengaturan.gs)
         // ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar']
         newRows.push([
-          newId,                // id
-          String(t.name || ''), // name (safe string)
-          email,                // email
-          '123456',             // password (default)
-          'TEACHER',            // role
-          '-',                  // nip
-          '-',                  // phone
-          String(t.subject || ''), // subject (safe string)
-          'L',                  // gender (default)
-          'Active',             // status
-          ''                    // avatar
+          newId,                    // id
+          String(t.name || 'Guru'), // name
+          email,                    // email
+          '123456',                 // password (default)
+          'TEACHER',                // role (default guru mapel)
+          '-',                      // nip
+          '-',                      // phone
+          String(t.subject || '-'), // subject
+          'L',                      // gender (default)
+          'Active',                 // status
+          ''                        // avatar
         ]);
         
-        existingEmails.add(email); // Add to Set to prevent duplicates within the same import batch
+        existingEmails.add(email); // Tandai email ini agar tidak duplikat di loop berikutnya
         count++;
       }
     });
 
     if (newRows.length > 0) {
-      // Batch write to sheet
+      // Tulis ke Sheet sekaligus (Batch Write) agar cepat
       sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
     }
 

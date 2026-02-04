@@ -64,10 +64,6 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
     XLSX.writeFile(wb, "Template_Import_Guru.xlsx");
   };
 
-  // Helper: Hapus semua karakter non-alphanumeric dan lowercase
-  // "Nama Guru" -> "namaguru", "Kode..." -> "kode"
-  const normalizeKey = (key: string) => key.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -84,27 +80,41 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
         // Convert ke JSON raw
         const rawData = XLSX.utils.sheet_to_json(sheet);
 
-        // Map data dengan normalisasi key lebih ketat
+        // MAPPING EKSPLISIT (PENTING)
+        // Menghubungkan Header Excel Anda dengan Internal System
         const teachers: ImportedTeacher[] = rawData.map((row: any) => {
-            const normalizedRow: Record<string, any> = {};
-            Object.keys(row).forEach(k => {
-                normalizedRow[normalizeKey(k)] = row[k];
-            });
+            // Cari key yang cocok (Case insensitive & Trimmed)
+            const keys = Object.keys(row);
+            const getKey = (target: string) => keys.find(k => k.trim().toLowerCase() === target.toLowerCase());
 
-            // PENTING: Gunakan String() untuk memaksa tipe data teks (cegah error di backend jika kode berupa angka)
+            // Ambil value berdasarkan kemungkinan nama header di Excel
+            const noVal = row[getKey('No') || ''] || row['No'] || '0';
+            
+            const nameVal = row[getKey('Nama Guru') || ''] || 
+                            row[getKey('Nama') || ''] || 
+                            row['Name'] || '';
+            
+            const codeVal = row[getKey('Kode') || ''] || 
+                            row[getKey('Code') || ''] || 
+                            row['Kode'] || '';
+            
+            const subjectVal = row[getKey('Mata Pelajaran') || ''] || 
+                               row[getKey('Mapel') || ''] || 
+                               row['Subject'] || '';
+
             return {
-                no: String(normalizedRow['no'] || '0'),
-                name: String(normalizedRow['namaguru'] || normalizedRow['nama'] || normalizedRow['name'] || ''),
-                code: String(normalizedRow['kode'] || normalizedRow['code'] || ''),
-                subject: String(normalizedRow['matapelajaran'] || normalizedRow['subject'] || normalizedRow['mapel'] || '')
+                no: String(noVal),
+                name: String(nameVal).trim(),
+                code: String(codeVal).trim(),
+                subject: String(subjectVal).trim()
             };
-        }).filter(t => t.name && t.name.trim() !== '' && t.code && t.code.trim() !== '');
+        }).filter(t => t.name && t.name !== '' && t.code && t.code !== ''); // Filter baris kosong
 
         if (teachers.length > 0) {
             setParsedData(teachers);
             setStep('preview');
         } else {
-            alert("Format Excel tidak dikenali. Pastikan header: No, Nama Guru, Kode, Mata Pelajaran.");
+            alert("Format Excel tidak dikenali. Pastikan ada kolom: 'Nama Guru', 'Kode', dan 'Mata Pelajaran'.");
         }
       } catch (err) {
         console.error(err);
@@ -155,7 +165,7 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
              </div>
              <div>
                 <h3 className="text-xl font-bold text-gray-900">Import Data Guru</h3>
-                <p className="text-sm text-gray-500">Mendukung Paste CSV (Legacy) atau Upload Excel Template.</p>
+                <p className="text-sm text-gray-500">Sistem akan otomatis menyesuaikan format header Excel Anda.</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-600">
@@ -171,13 +181,13 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4 flex gap-3 text-blue-800 text-sm">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <p>
-                  <strong>Metode 1:</strong> Salin isi file CSV (separator titik koma) ke kolom di bawah.<br/>
-                  <strong>Metode 2 (Disarankan):</strong> Gunakan tombol <strong>Upload Excel</strong> dengan format sesuai template.
+                  <strong>Perhatian:</strong> Pastikan Excel memiliki kolom <strong>Nama Guru</strong>, <strong>Kode</strong>, dan <strong>Mata Pelajaran</strong>.
+                  Sistem akan membuat email login otomatis berdasarkan Kode (contoh: <code>guru.kode@sekolah.sch.id</code>).
                 </p>
               </div>
               <textarea
                 className="flex-1 w-full rounded-xl border-gray-200 bg-gray-50 p-4 font-mono text-xs focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                placeholder="Paste CSV content here..."
+                placeholder="Anda bisa paste CSV manual disini, atau gunakan tombol Upload Excel di bawah..."
                 value={csvContent}
                 onChange={(e) => setCsvContent(e.target.value)}
               />
@@ -224,8 +234,8 @@ export const BulkImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                  </div>
                  <h3 className="text-3xl font-bold text-gray-900 mb-2">Import Berhasil!</h3>
                  <p className="text-gray-500 max-w-md">
-                   {parsedData.length} data guru telah berhasil dikirim ke database. 
-                   <br/><span className="text-sm text-gray-400">Jika data tidak muncul, pastikan URL Google Apps Script sudah benar.</span>
+                   {parsedData.length} data guru telah dikirim ke database. 
+                   <br/>Data baru akan segera muncul di daftar guru.
                  </p>
              </div>
           )}
