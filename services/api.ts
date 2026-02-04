@@ -1,11 +1,11 @@
 
 
 import { MOCK_STUDENTS } from '../constants';
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject } from '../types';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfJZfEACNUBkS1g7gQ_J8YNnAWlL5FRjXDpH0eIiQlWrhc7fMHD9rNN6ic3UodVejl7w/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzbZFTh75pLf8pbB6W_wRPZ_wgeQqbR4fpywkGg9NHuAkKET11qKH-oGpqgIKs8ylv4Aw/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -188,6 +188,31 @@ export const ApiService = {
     return { success: true, message: data.message };
   },
 
+  // --- CLASSES SERVICES (NEW) ---
+  fetchClasses: async (): Promise<ClassRoom[]> => {
+    const data = await fetchScript('fetchClasses');
+    if (data === null) {
+        return [
+            { id: 'C1', name: '10-IPA-1', level: '10', major: 'IPA' },
+            { id: 'C2', name: '11-IPS-2', level: '11', major: 'IPS' },
+            { id: 'C3', name: '12-TKJ-1', level: '12', major: 'TKJ' },
+        ];
+    }
+    return data as ClassRoom[];
+  },
+
+  createClass: async (payload: { name: string; level: string; major: string }): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('createClass', payload);
+    if (data === null) return { success: true, message: 'Kelas berhasil ditambahkan (MOCK).' };
+    return { success: true, message: data.message };
+  },
+
+  deleteClass: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('deleteClass', { id });
+    if (data === null) return { success: true, message: 'Kelas berhasil dihapus (MOCK).' };
+    return { success: true, message: data.message };
+  },
+
   // --- BACKUP & RESTORE SERVICES ---
 
   createBackup: async (): Promise<BackupResponse> => {
@@ -205,7 +230,8 @@ export const ApiService = {
                 attendance: [],
                 logs: [],
                 majors: [],
-                subjects: []
+                subjects: [],
+                classes: []
             }
         };
     }

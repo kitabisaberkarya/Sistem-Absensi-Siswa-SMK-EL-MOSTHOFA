@@ -70,6 +70,13 @@ export interface Subject {
   category: string; // e.g., Muatan Nasional, Kejuruan
 }
 
+export interface ClassRoom {
+  id: string;
+  name: string;    // e.g., 10-TKJ-1
+  level: string;   // e.g., 10
+  major: string;   // e.g., TKJ
+}
+
 // --- Bulk Import Types ---
 
 export interface ImportedTeacher {
@@ -100,6 +107,7 @@ export interface BackupData {
   logs: any[];
   majors?: any[];    // Added for backup compatibility
   subjects?: any[];  // Added for backup compatibility
+  classes?: any[];   // Added for backup compatibility
 }
 
 export interface BackupResponse {

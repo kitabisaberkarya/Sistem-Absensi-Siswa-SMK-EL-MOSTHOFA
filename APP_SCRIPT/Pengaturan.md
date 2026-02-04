@@ -15,7 +15,8 @@ const SHEETS = {
   ATTENDANCE: 'Attendance_Log',
   LOGS: 'System_Logs',
   MAJORS: 'Majors',
-  SUBJECTS: 'Subjects'
+  SUBJECTS: 'Subjects',
+  CLASSES: 'Classes'
 };
 
 // --- DEFINISI HEADER DATABASE ---
@@ -25,7 +26,8 @@ const SHEET_HEADERS = {
   [SHEETS.ATTENDANCE]: ['log_id', 'date', 'classId', 'subject', 'teacherId', 'topic', 'studentId', 'studentName', 'status', 'note', 'timestamp'],
   [SHEETS.LOGS]: ['id', 'user', 'action', 'timestamp', 'status'],
   [SHEETS.MAJORS]: ['id', 'code', 'name'],
-  [SHEETS.SUBJECTS]: ['id', 'code', 'name', 'category']
+  [SHEETS.SUBJECTS]: ['id', 'code', 'name', 'category'],
+  [SHEETS.CLASSES]: ['id', 'name', 'level', 'majorId']
 };
 
 // --- UTILS: GLOBAL HELPERS (Digunakan di semua file) ---
@@ -56,6 +58,8 @@ function getSheetOrSetup(sheetName) {
         _setValidation(sheet, "I2:I", ['Hadir', 'Sakit', 'Izin', 'Alpha']);
       } else if (sheetName === SHEETS.SUBJECTS) {
         _setValidation(sheet, "D2:D", ['Umum', 'Peminatan', 'Kejuruan', 'Mulok']);
+      } else if (sheetName === SHEETS.CLASSES) {
+        _setValidation(sheet, "C2:C", ['10', '11', '12']);
       }
     }
   }

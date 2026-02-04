@@ -1,32 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { ApiService } from '../../services/api';
-import { Major, Subject } from '../../types';
+import { Major, Subject, ClassRoom } from '../../types';
 import { Button } from '../../components/Button';
 import { AddMajorModal } from '../../components/AddMajorModal';
 import { AddSubjectModal } from '../../components/AddSubjectModal';
+import { AddClassModal } from '../../components/AddClassModal';
 import { 
   BookMarked, 
-  BookOpen, 
   Library, 
   Plus, 
   Trash2, 
   Search,
   School,
-  Tag
+  Tag,
+  LayoutGrid
 } from 'lucide-react';
 import clsx from 'clsx';
 
-type Tab = 'majors' | 'subjects';
+type Tab = 'majors' | 'subjects' | 'classes';
 
 export const AcademicsPage = () => {
   const [activeTab, setActiveTab] = useState<Tab>('majors');
   const [majors, setMajors] = useState<Major[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<ClassRoom[]>([]);
   const [loading, setLoading] = useState(false);
   
   // Modal States
   const [isAddMajorOpen, setIsAddMajorOpen] = useState(false);
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
+  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   
   // Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,9 +58,27 @@ export const AcademicsPage = () => {
     }
   };
 
+  const fetchClasses = async () => {
+    setLoading(true);
+    try {
+      const data = await ApiService.fetchClasses();
+      setClasses(data);
+      // We also need majors for mapping if needed, or to pass to modal
+      if (majors.length === 0) {
+        const majData = await ApiService.fetchMajors();
+        setMajors(majData);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'majors') fetchMajors();
-    else fetchSubjects();
+    else if (activeTab === 'subjects') fetchSubjects();
+    else fetchClasses();
   }, [activeTab]);
 
   const handleDeleteMajor = async (id: string, name: string) => {
@@ -74,6 +95,19 @@ export const AcademicsPage = () => {
     }
   };
 
+  const handleDeleteClass = async (id: string, name: string) => {
+    if(window.confirm(`Yakin hapus kelas ${name}?`)) {
+        await ApiService.deleteClass(id);
+        fetchClasses();
+    }
+  };
+
+  const handleOpenAdd = () => {
+    if (activeTab === 'majors') setIsAddMajorOpen(true);
+    else if (activeTab === 'subjects') setIsAddSubjectOpen(true);
+    else setIsAddClassOpen(true);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       
@@ -81,7 +115,7 @@ export const AcademicsPage = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Data Akademik</h2>
-          <p className="text-gray-500 text-sm">Manajemen program studi dan mata pelajaran sekolah.</p>
+          <p className="text-gray-500 text-sm">Manajemen program studi, kelas, dan mata pelajaran sekolah.</p>
         </div>
       </div>
 
@@ -99,6 +133,18 @@ export const AcademicsPage = () => {
             >
                 <School className="w-4 h-4" />
                 Daftar Jurusan
+            </button>
+            <button
+                onClick={() => { setActiveTab('classes'); setSearchTerm(''); }}
+                className={clsx(
+                    "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors",
+                    activeTab === 'classes'
+                        ? "border-brand-600 text-brand-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                )}
+            >
+                <LayoutGrid className="w-4 h-4" />
+                Daftar Kelas
             </button>
             <button
                 onClick={() => { setActiveTab('subjects'); setSearchTerm(''); }}
@@ -123,16 +169,16 @@ export const AcademicsPage = () => {
             <div className="relative max-w-sm w-full">
                 <input
                     type="text"
-                    placeholder={`Cari ${activeTab === 'majors' ? 'jurusan' : 'mapel'}...`}
+                    placeholder={`Cari data...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white"
                 />
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
             </div>
-            <Button onClick={() => activeTab === 'majors' ? setIsAddMajorOpen(true) : setIsAddSubjectOpen(true)}>
+            <Button onClick={handleOpenAdd}>
                 <Plus className="w-4 h-4 mr-2" />
-                Tambah {activeTab === 'majors' ? 'Jurusan' : 'Mapel'}
+                Tambah {activeTab === 'majors' ? 'Jurusan' : activeTab === 'classes' ? 'Kelas' : 'Mapel'}
             </Button>
         </div>
 
@@ -158,6 +204,47 @@ export const AcademicsPage = () => {
                                     <td className="px-6 py-4 text-right">
                                         <button 
                                             onClick={() => handleDeleteMajor(major.id, major.name)}
+                                            className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        )}
+
+        {/* LIST KELAS */}
+        {activeTab === 'classes' && (
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-500 uppercase bg-gray-100">
+                        <tr>
+                            <th className="px-6 py-4 w-20">Tingkat</th>
+                            <th className="px-6 py-4">Nama Kelas</th>
+                            <th className="px-6 py-4">Jurusan</th>
+                            <th className="px-6 py-4 text-right w-32">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {classes.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                            <tr><td colSpan={4} className="text-center py-8 text-gray-500">Data kelas kosong.</td></tr>
+                        ) : (
+                            classes.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map((cls) => (
+                                <tr key={cls.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4">
+                                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-bold border border-blue-100">
+                                            Kelas {cls.level}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 font-bold text-gray-900">{cls.name}</td>
+                                    <td className="px-6 py-4 text-gray-600 font-mono text-xs">{cls.major}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button 
+                                            onClick={() => handleDeleteClass(cls.id, cls.name)}
                                             className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -219,6 +306,7 @@ export const AcademicsPage = () => {
 
       <AddMajorModal isOpen={isAddMajorOpen} onClose={() => { setIsAddMajorOpen(false); fetchMajors(); }} />
       <AddSubjectModal isOpen={isAddSubjectOpen} onClose={() => { setIsAddSubjectOpen(false); fetchSubjects(); }} />
+      <AddClassModal isOpen={isAddClassOpen} onClose={() => { setIsAddClassOpen(false); fetchClasses(); }} majors={majors} />
 
     </div>
   );

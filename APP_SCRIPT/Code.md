@@ -1,7 +1,5 @@
 
 
-
-
 /**
  * MODULE: API GATEWAY (Main Controller)
  * Menangani request HTTP dari React Frontend
@@ -83,6 +81,17 @@ function handleRequest(e) {
         break;
       case 'deleteSubject':
         result = deleteSubject(payload.id);
+        break;
+      
+      // Kelas (NEW)
+      case 'fetchClasses':
+        result = getAllClasses();
+        break;
+      case 'createClass':
+        result = createClass(payload);
+        break;
+      case 'deleteClass':
+        result = deleteClass(payload.id);
         break;
 
       // Transaksi (Laporan.gs)
