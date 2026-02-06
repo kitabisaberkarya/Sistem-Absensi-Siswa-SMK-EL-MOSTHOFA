@@ -7,7 +7,7 @@ export enum Role {
   ADMIN = 'ADMIN',           // Admin Sistem
 }
 
-export type ViewState = 'dashboard' | 'teachers' | 'students' | 'academics' | 'reports' | 'mailbox' | 'settings' | 'backup';
+export type ViewState = 'dashboard' | 'teachers' | 'students' | 'academics' | 'reports' | 'mailbox' | 'settings' | 'backup' | 'teacher-reports';
 
 export interface User {
   id: string;
@@ -177,6 +177,17 @@ export interface SemesterRecapEntry {
   present: number;
   totalMeetings: number;
   percentage: number;
+}
+
+// --- Teacher History Types (NEW) ---
+export interface TeacherHistoryLog {
+  logId: string;
+  date: string;
+  className: string;
+  subject: string;
+  topic: string;
+  studentCount: number; // calculated from attendance data usually or simplified
+  timestamp: string;
 }
 
 // --- User Management Types ---

@@ -113,3 +113,35 @@ function fetchSemesterRecap(payload) {
     };
   });
 }
+
+/**
+ * FETCH TEACHER HISTORY (NEW)
+ * Mengambil riwayat pengajaran guru berdasarkan jurnal
+ */
+function getTeacherHistory(teacherId) {
+  const attendance = getData(SHEETS.ATTENDANCE);
+  
+  // Filter by teacherId
+  const myLogs = attendance.filter(r => r.teacherId === teacherId);
+  
+  // Group by LogID (karena satu submit absensi = banyak baris siswa, tapi satu LogID)
+  const groupedLogs = {};
+  
+  myLogs.forEach(row => {
+    if (!groupedLogs[row.log_id]) {
+      groupedLogs[row.log_id] = {
+        logId: row.log_id,
+        date: row.date,
+        className: row.classId,
+        subject: row.subject,
+        topic: row.topic,
+        studentCount: 0,
+        timestamp: row.timestamp
+      };
+    }
+    groupedLogs[row.log_id].studentCount++;
+  });
+  
+  // Convert to array and sort descending by date
+  return Object.values(groupedLogs).sort((a, b) => new Date(b.date) - new Date(a.date));
+}

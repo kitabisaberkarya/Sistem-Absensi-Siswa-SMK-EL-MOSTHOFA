@@ -104,6 +104,12 @@ function handleRequest(e) {
       case 'submitAttendance':
         result = saveAttendance(payload);
         break;
+      case 'fetchSemesterRecap':
+        result = fetchSemesterRecap(payload);
+        break;
+      case 'fetchTeacherHistory': // NEW ROUTE
+        result = getTeacherHistory(payload.teacherId);
+        break;
 
       // Statistik (Dashboard.gs)
       case 'fetchDashboardStats':

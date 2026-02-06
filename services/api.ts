@@ -1,8 +1,8 @@
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry } from '../types';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry, TeacherHistoryLog } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4bpF2s4ZpvLAYnxJdrnIFZTgNAMr8PydybhZJOWSFv-wIxufIMxb7mpQlJT1xr8jeug/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuGu3xsq8VP5tIDs2uT9rzyThwfV3BtzV2HJSpImxVSPzXqbfP9aGZ1VeK2Q_vxk5oZw/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -141,6 +141,11 @@ export const ApiService = {
   fetchSemesterRecap: async (classId: string, semester: string, year: string): Promise<SemesterRecapEntry[]> => {
     const data = await fetchScript('fetchSemesterRecap', { classId, semester, year });
     return (data || []) as SemesterRecapEntry[];
+  },
+
+  fetchTeacherHistory: async (teacherId: string): Promise<TeacherHistoryLog[]> => {
+    const data = await fetchScript('fetchTeacherHistory', { teacherId });
+    return (data || []) as TeacherHistoryLog[];
   },
 
   // --- BACKUP & RESTORE SERVICES ---

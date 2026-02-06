@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database, BookMarked } from 'lucide-react';
+import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database, BookMarked, PieChart } from 'lucide-react';
 import { Role, ViewState } from '../types';
 import clsx from 'clsx';
 
@@ -160,21 +160,31 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
         return { title: 'Dashboard Eksekutif', icon: Briefcase, desc: 'Monitoring performa sekolah.' };
       case Role.COUNSELOR:
         return { title: 'Monitoring Konseling', icon: HeartHandshake, desc: 'Pantau kedisiplinan siswa.' };
-      default: // TEACHER
+      case Role.TEACHER:
+        // Teacher Logic: Change title based on view
+        if (currentView === 'teacher-reports') {
+            return { title: 'Laporan Guru', icon: FileText, desc: 'Rekap kehadiran & jurnal.' };
+        }
         return { title: 'Input Absensi', icon: ClipboardList, desc: 'Silakan isi kehadiran siswa untuk mata pelajaran Anda.' };
+      default:
+        return { title: 'Panel Guru', icon: ClipboardList, desc: '' };
     }
   };
 
   const display = getRoleDisplay();
   const Icon = display.icon;
 
+  const handleStandardNav = (view: ViewState) => {
+      if (onViewChange) onViewChange(view);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleStandardNav('dashboard')}>
               <img 
                 src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
                 alt="Logo SMK" 
@@ -187,6 +197,31 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             </div>
 
             <div className="flex items-center gap-4">
+              
+              {/* TEACHER NAVIGATION (Menu Tabs) */}
+              {user?.role === Role.TEACHER && (
+                  <div className="hidden md:flex bg-gray-100 rounded-lg p-1 mr-4">
+                      <button 
+                        onClick={() => handleStandardNav('dashboard')}
+                        className={clsx(
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                            currentView === 'dashboard' || !currentView ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <ClipboardList className="w-4 h-4" /> Input Absen
+                      </button>
+                      <button 
+                        onClick={() => handleStandardNav('teacher-reports')}
+                        className={clsx(
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                            currentView === 'teacher-reports' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <FileText className="w-4 h-4" /> Laporan
+                      </button>
+                  </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <div className="text-right hidden sm:block">
                   <div className="text-sm font-medium text-gray-700">
@@ -219,6 +254,31 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Mobile Nav for Teachers */}
+        {user?.role === Role.TEACHER && (
+            <div className="md:hidden mb-6 flex gap-2">
+                 <button 
+                    onClick={() => handleStandardNav('dashboard')}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
+                        currentView === 'dashboard' || !currentView ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
+                    )}
+                 >
+                    <ClipboardList className="w-4 h-4" /> Input
+                 </button>
+                 <button 
+                    onClick={() => handleStandardNav('teacher-reports')}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
+                        currentView === 'teacher-reports' ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
+                    )}
+                 >
+                    <FileText className="w-4 h-4" /> Laporan
+                 </button>
+            </div>
+        )}
+
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Icon className="text-brand-600" /> {display.title}
