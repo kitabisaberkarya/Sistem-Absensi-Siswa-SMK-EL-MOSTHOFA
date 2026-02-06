@@ -5,6 +5,7 @@ import { ApiService } from '../../services/api';
 import { ReportService } from '../../services/ReportService';
 import { Student, AttendanceStatus } from '../../types';
 import { Button } from '../../components/Button';
+import { StudentViolationDetailModal } from '../../components/StudentViolationDetailModal'; // Import Modal Baru
 import { 
   FileText, 
   Printer, 
@@ -13,7 +14,8 @@ import {
   UserX,
   AlertTriangle,
   Mail,
-  Download
+  Download,
+  Eye
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -35,6 +37,10 @@ export const CounselorReportsPage = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ViolationData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal State
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedViolation, setSelectedViolation] = useState<ViolationData | null>(null);
   
   // Load data on mount
   useEffect(() => {
@@ -90,6 +96,11 @@ export const CounselorReportsPage = () => {
         letterType: type,
         date: new Date().toISOString()
     });
+  };
+
+  const handleViewDetail = (violation: ViolationData) => {
+    setSelectedViolation(violation);
+    setIsDetailOpen(true);
   };
 
   const filteredData = data.filter(d => 
@@ -187,8 +198,13 @@ export const CounselorReportsPage = () => {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
-                                    <Button size="sm" variant="outline" className="text-xs h-8">
-                                        Detail
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        className="text-xs h-8 text-brand-600 border-brand-200 hover:bg-brand-50"
+                                        onClick={() => handleViewDetail(d)}
+                                    >
+                                        <Eye className="w-3 h-3 mr-1.5" /> Detail
                                     </Button>
                                 </td>
                             </tr>
@@ -260,6 +276,14 @@ export const CounselorReportsPage = () => {
             )}
         </div>
       )}
+
+      {/* DETAIL MODAL */}
+      <StudentViolationDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        student={selectedViolation?.student || null}
+        riskStatus={selectedViolation?.status}
+      />
 
     </div>
   );

@@ -1,4 +1,6 @@
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry, TeacherHistoryLog } from '../types';
+
+
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry, TeacherHistoryLog, StudentHistoryLog } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
@@ -143,9 +145,16 @@ export const ApiService = {
     return (data || []) as SemesterRecapEntry[];
   },
 
+  // NEW: Fetch Teacher's teaching history (Journal)
   fetchTeacherHistory: async (teacherId: string): Promise<TeacherHistoryLog[]> => {
     const data = await fetchScript('fetchTeacherHistory', { teacherId });
     return (data || []) as TeacherHistoryLog[];
+  },
+
+  // NEW: Fetch specific student history for Counseling Detail
+  fetchStudentHistory: async (studentId: string): Promise<StudentHistoryLog[]> => {
+    const data = await fetchScript('fetchStudentHistory', { studentId });
+    return (data || []) as StudentHistoryLog[];
   },
 
   // --- BACKUP & RESTORE SERVICES ---

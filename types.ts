@@ -179,14 +179,29 @@ export interface SemesterRecapEntry {
   percentage: number;
 }
 
-// --- Teacher History Types (NEW) ---
+// Data detail history absensi siswa (untuk BK)
+export interface StudentHistoryLog {
+  log_id: string;
+  date: string;
+  classId: string;
+  subject: string;
+  teacherId: string;
+  topic: string;
+  studentId: string;
+  studentName: string;
+  status: AttendanceStatus;
+  note: string;
+  timestamp: string;
+}
+
+// Data Jurnal Mengajar Guru (untuk Laporan Guru)
 export interface TeacherHistoryLog {
   logId: string;
   date: string;
   className: string;
   subject: string;
   topic: string;
-  studentCount: number; // calculated from attendance data usually or simplified
+  studentCount: number; 
   timestamp: string;
 }
 

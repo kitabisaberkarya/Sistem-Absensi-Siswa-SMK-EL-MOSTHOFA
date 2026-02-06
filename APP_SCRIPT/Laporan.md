@@ -173,3 +173,15 @@ function fetchCounselingAggregates() {
   // Filter only those with issues (e.g. > 0 Alpha)
   return Object.values(aggregates).filter(s => s.alpha > 0 || s.sick > 5);
 }
+
+/**
+ * GET STUDENT ATTENDANCE HISTORY (Detail)
+ * Detail riwayat absensi per siswa untuk keperluan BK/Wali Kelas
+ */
+function getStudentAttendanceHistory(studentId) {
+  const attendance = getData(SHEETS.ATTENDANCE);
+  // Filter strict type match for ID
+  const logs = attendance.filter(r => String(r.studentId) === String(studentId));
+  // Sort descending by date (Newest first)
+  return logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+}
