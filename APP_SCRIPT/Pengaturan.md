@@ -3,9 +3,6 @@
 /**
  * MODULE: PENGATURAN SISTEM
  * Konfigurasi utama database dan schema
- * 
- * PENTING: Jangan tambahkan tag OnlyCurrentDoc di file ini.
- * Fitur Backup membutuhkan akses penuh ke DriveApp untuk membuat folder dan file JSON.
  */
 
 // --- KONFIGURASI NAMA SHEET ---
@@ -20,6 +17,7 @@ const SHEETS = {
 };
 
 // --- DEFINISI HEADER DATABASE ---
+// Pastikan urutan ini SAMA dengan yang ada di Google Sheet
 const SHEET_HEADERS = {
   [SHEETS.USERS]: ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar'],
   [SHEETS.STUDENTS]: ['id', 'name', 'nis', 'className', 'gender', 'parentPhone', 'address'],
@@ -30,11 +28,8 @@ const SHEET_HEADERS = {
   [SHEETS.CLASSES]: ['id', 'name', 'level', 'majorId']
 };
 
-// --- UTILS: GLOBAL HELPERS (Digunakan di semua file) ---
+// --- UTILS: GLOBAL HELPERS ---
 
-/**
- * Mendapatkan Sheet atau membuatnya jika belum ada
- */
 function getSheetOrSetup(sheetName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(sheetName);
@@ -42,63 +37,43 @@ function getSheetOrSetup(sheetName) {
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     const headers = SHEET_HEADERS[sheetName];
-    
     if (headers) {
-      // 1. Set Headers
       sheet.appendRow(headers);
       sheet.setFrozenRows(1);
       sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
-      
-      // 2. Apply Validations
-      if (sheetName === SHEETS.USERS) {
-        _setValidation(sheet, "E2:E", ['TEACHER', 'COUNSELOR', 'PRINCIPAL', 'ADMIN']);
-        _setValidation(sheet, "I2:I", ['L', 'P']);
-        _setValidation(sheet, "J2:J", ['Active', 'Inactive']);
-      } else if (sheetName === SHEETS.ATTENDANCE) {
-        _setValidation(sheet, "I2:I", ['Hadir', 'Sakit', 'Izin', 'Alpha']);
-      } else if (sheetName === SHEETS.SUBJECTS) {
-        _setValidation(sheet, "D2:D", ['Umum', 'Peminatan', 'Kejuruan', 'Mulok']);
-      } else if (sheetName === SHEETS.CLASSES) {
-        _setValidation(sheet, "C2:C", ['10', '11', '12']);
-      }
     }
   }
   return sheet;
 }
 
 /**
- * Helper Validation (Internal)
- */
-function _setValidation(sheet, rangeA1, list) {
-  const rule = SpreadsheetApp.newDataValidation()
-    .requireValueInList(list, true)
-    .setAllowInvalid(true)
-    .build();
-  sheet.getRange(rangeA1).setDataValidation(rule);
-}
-
-/**
  * Mengambil semua data dari sheet sebagai Array of Objects
+ * Dengan pembersihan header (trim)
  */
 function getData(sheetName) {
   const sheet = getSheetOrSetup(sheetName);
   if (sheet.getLastRow() < 2) return [];
   
   const data = sheet.getDataRange().getValues();
-  const headers = data.shift(); // Hapus header
+  // Ambil header dan bersihkan dari spasi ekstra
+  const headers = data.shift().map(h => String(h).trim()); 
   
   return data.map(row => {
     let obj = {};
     headers.forEach((h, i) => {
-      obj[h] = row[i];
+      // Map header value ke object key
+      // Jika header kosong, skip
+      if (h) {
+         obj[h] = row[i];
+         // Fallback alias (optional)
+         if (h === 'Kelas') obj['className'] = row[i];
+         if (h === 'Nama') obj['name'] = row[i];
+      }
     });
     return obj;
   });
 }
 
-/**
- * Mencatat Log Sistem
- */
 function logSystem(user, action) {
   const sheet = getSheetOrSetup(SHEETS.LOGS);
   sheet.appendRow([Utilities.getUuid(), user, action, new Date(), 'Success']);

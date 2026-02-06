@@ -7,16 +7,22 @@
 function getStudentsByClass(className) {
   const students = getData(SHEETS.STUDENTS);
   
-  // ROBUST SEARCH LOGIC:
-  // 1. Bersihkan search term (hapus spasi depan/belakang, lowercase)
-  const searchTarget = String(className).trim().toLowerCase();
+  if (!className) return [];
+
+  // NORMALIZATION HELPER
+  // Menghapus spasi ganda, trim, dan lowercase untuk pencarian yang lebih akurat
+  const normalize = (str) => String(str || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
+  
+  const target = normalize(className);
   
   return students.filter(s => {
-    // 2. Bersihkan data di database juga saat membandingkan
-    const studentClass = String(s.className || '').trim().toLowerCase();
+    // Cek field 'className'. Jika kosong, cek field 'Kelas' (untuk backward compatibility)
+    const rawClass = s.className || s.Kelas || s.kelas || '';
+    const current = normalize(rawClass);
     
-    // 3. Bandingkan
-    return studentClass === searchTarget;
+    // Strict match OR Normalized match
+    // Contoh: "10-TKJ-1" akan match dengan "10 TKJ 1" atau "10tkj1"
+    return current === target;
   });
 }
 
@@ -29,7 +35,7 @@ function createStudent(payload) {
   
   // Validasi sederhana duplicate NIS
   const students = getData(SHEETS.STUDENTS);
-  if (students.find(s => s.nis == payload.nis)) {
+  if (students.find(s => String(s.nis) == String(payload.nis))) {
     throw new Error(`Siswa dengan NIS ${payload.nis} sudah ada.`);
   }
 
@@ -67,12 +73,16 @@ function updateStudent(payload) {
 
   if (rowIndex === -1) throw new Error("Student ID not found.");
 
-  // Update Cells
+  // Update Cells based on Column Index (1-based for getRange)
+  // Name (Col 2)
   sheet.getRange(rowIndex, 2).setValue(payload.name);
-  // NIS (col 3) is usually PK, but if you allow update: sheet.getRange(rowIndex, 3).setValue(payload.nis);
+  // className (Col 4)
   sheet.getRange(rowIndex, 4).setValue(payload.className);
+  // gender (Col 5)
   sheet.getRange(rowIndex, 5).setValue(payload.gender);
+  // parentPhone (Col 6)
   sheet.getRange(rowIndex, 6).setValue(payload.parentPhone);
+  // address (Col 7)
   sheet.getRange(rowIndex, 7).setValue(payload.address);
 
   logSystem('ADMIN', `Updated Student: ${payload.name} (${payload.id})`);

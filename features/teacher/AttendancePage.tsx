@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ApiService } from '../../services/api';
 import { Student, AttendanceStatus, AttendanceRecord, ClassRoom, Subject } from '../../types';
@@ -18,7 +19,8 @@ import {
   Calendar,
   FileText,
   Users,
-  AlertTriangle
+  AlertTriangle,
+  Database
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -48,7 +50,7 @@ export const AttendancePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false); // New state to track if a search was performed
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Status Configuration for UI
   const statusConfig = [
@@ -158,13 +160,11 @@ export const AttendancePage = () => {
       return;
     }
 
-    // Validate if all students have status
     const unmarked = students.filter(s => !records[s.id]);
     if (unmarked.length > 0) {
       const confirm = window.confirm(`Ada ${unmarked.length} siswa belum diabsen. Mereka akan dianggap 'Hadir'. Lanjutkan?`);
       if (!confirm) return;
       
-      // Auto-fill unmarked as present
       unmarked.forEach(s => {
         records[s.id] = AttendanceStatus.PRESENT;
       });
@@ -207,7 +207,6 @@ export const AttendancePage = () => {
     }
   };
 
-  // Prepare data for report preview
   const getReportData = (): ReportRow[] => {
     return students.map((s, index) => ({
       no: index + 1,
@@ -219,7 +218,6 @@ export const AttendancePage = () => {
     }));
   };
 
-  // Filter students
   const filteredStudents = useMemo(() => {
     return students.filter(s => 
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -227,7 +225,6 @@ export const AttendancePage = () => {
     );
   }, [students, searchQuery]);
 
-  // Calculate Stats
   const stats = useMemo(() => {
     const total = students.length;
     const marked = Object.keys(records).length;
@@ -235,8 +232,6 @@ export const AttendancePage = () => {
     const absent = marked - present;
     return { total, marked, present, absent };
   }, [students, records]);
-
-  // --- RENDER LOGIC ---
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
@@ -290,7 +285,6 @@ export const AttendancePage = () => {
           </div>
         </div>
 
-        {/* Jurnal Section - Mandatory */}
         {selectedClass && (
           <div className="px-6 pb-6 border-t border-gray-100 pt-6 animate-in fade-in slide-in-from-top-4 duration-500">
             <label className="block text-sm font-semibold text-gray-700 mb-2 flex justify-between">
@@ -316,7 +310,6 @@ export const AttendancePage = () => {
 
       {/* --- CONDITIONAL RENDERING --- */}
       
-      {/* 1. STATE: LOADING */}
       {loading && (
         <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-brand-100 border-t-brand-600 mx-auto mb-4"></div>
@@ -324,11 +317,9 @@ export const AttendancePage = () => {
         </div>
       )}
 
-      {/* 2. STATE: ACTIVE (Data Loaded & Not Empty) */}
       {!loading && students.length > 0 && (
         <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
           
-          {/* Toolbar */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200 sticky top-[70px] z-30">
             <div className="relative w-full md:w-64">
               <input
@@ -361,7 +352,6 @@ export const AttendancePage = () => {
               </Button>
             </div>
 
-            {/* Progress Bar Mobile */}
             <div className="w-full md:hidden h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-brand-500 transition-all duration-500"
@@ -370,7 +360,6 @@ export const AttendancePage = () => {
             </div>
           </div>
 
-          {/* Student List Grid */}
           <div className="grid grid-cols-1 gap-4">
             {filteredStudents.map((student) => {
               const status = records[student.id];
@@ -389,7 +378,6 @@ export const AttendancePage = () => {
                   <div className="p-4 sm:p-5">
                     <div className="flex flex-col md:flex-row md:items-center gap-4">
                       
-                      {/* Student Info */}
                       <div className="flex items-center gap-4 min-w-[200px]">
                         <div className={clsx(
                           "w-12 h-12 rounded-full flex items-center justify-center text-base font-bold shadow-sm ring-2 ring-white",
@@ -411,10 +399,7 @@ export const AttendancePage = () => {
                         </div>
                       </div>
 
-                      {/* Controls Wrapper */}
                       <div className="flex-1 flex flex-col sm:flex-row gap-4 justify-between sm:items-center mt-2 md:mt-0">
-                        
-                        {/* Status Buttons */}
                         <div className="grid grid-cols-4 gap-2 w-full sm:max-w-md">
                           {statusConfig.map((conf) => (
                             <button
@@ -424,7 +409,7 @@ export const AttendancePage = () => {
                                 "flex flex-col sm:flex-row items-center justify-center py-2 sm:py-2.5 px-2 rounded-lg border transition-all duration-200",
                                 status === conf.value 
                                   ? conf.activeColor 
-                                  : clsx("bg-white text-gray-500 border-gray-200 hover:border-gray-300", conf.color.split(' ')[0]) // subtle hover bg
+                                  : clsx("bg-white text-gray-500 border-gray-200 hover:border-gray-300", conf.color.split(' ')[0]) 
                               )}
                             >
                               <conf.icon className={clsx("w-5 h-5 sm:mr-2", status === conf.value ? "animate-pulse-once" : "")} />
@@ -436,7 +421,6 @@ export const AttendancePage = () => {
                       </div>
                     </div>
 
-                    {/* Permanent Note Section */}
                     <div className="mt-4 pt-4 border-t border-gray-100">
                          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
                            Keterangan / Catatan Perilaku
@@ -461,7 +445,6 @@ export const AttendancePage = () => {
             )}
           </div>
 
-          {/* Sticky Footer for Action */}
           <div className="fixed bottom-6 right-6 z-40 left-6 md:left-auto flex flex-col items-end pointer-events-none">
              <div className="pointer-events-auto shadow-2xl shadow-brand-900/20 rounded-xl">
               <Button 
@@ -478,32 +461,33 @@ export const AttendancePage = () => {
         </div>
       )}
 
-      {/* 3. STATE: EMPTY (Selected, Not Loading, but No Students) */}
+      {/* 3. STATE: EMPTY (Enhanced Warning) */}
       {!loading && hasSearched && students.length === 0 && (
         <div className="text-center py-16 bg-white rounded-2xl border border-red-200 shadow-sm animate-in fade-in zoom-in-95">
           <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-             <AlertTriangle className="w-10 h-10 text-red-500" />
+             <Database className="w-10 h-10 text-red-500" />
           </div>
           <h3 className="text-xl font-bold text-gray-900">Data Siswa Tidak Ditemukan</h3>
           <p className="text-gray-500 max-w-md mx-auto mt-2">
             Kelas <strong>"{selectedClass}"</strong> belum memiliki data siswa yang terdaftar di database.
           </p>
           <div className="mt-6 flex flex-col items-center gap-3">
-             <div className="text-sm bg-gray-100 p-4 rounded-xl border border-gray-200 max-w-lg text-left">
-                <p className="font-semibold text-gray-700 mb-2">Diagnosa Masalah:</p>
-                <ul className="list-disc ml-4 text-gray-600 space-y-1">
-                    <li>Nama kelas di dropdown ("{selectedClass}") berbeda dengan nama kelas di file Excel/Database (misal: "Kelas XII TBS").</li>
-                    <li>Sistem membutuhkan penulisan yang <strong>persis sama</strong>.</li>
+             <div className="text-sm bg-red-50 p-4 rounded-xl border border-red-100 max-w-lg text-left">
+                <p className="font-bold text-red-800 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> Diagnosa Masalah:
+                </p>
+                <ul className="list-disc ml-4 text-red-700 space-y-1">
+                    <li>Nama kelas di dropdown ("{selectedClass}") mungkin berbeda penulisan dengan di database (misal: "10-TKJ-1" vs "X TKJ 1").</li>
+                    <li>Atau Header di Google Sheet tidak sesuai (Harus: <code>className</code> bukan <code>Kelas</code>).</li>
                 </ul>
              </div>
-             <p className="text-xs text-brand-600 mt-2">
-                Solusi: Edit data siswa di menu <strong>Data Siswa</strong> agar sesuai dengan nama kelas ini.
+             <p className="text-xs text-gray-500 mt-2">
+                Solusi: Hubungi Admin untuk menjalankan <strong>Fix Database Structure</strong> di panel script.
              </p>
           </div>
         </div>
       )}
 
-      {/* 4. STATE: IDLE (Initial State) */}
       {!loading && !hasSearched && (
         <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-gray-300">
           <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -517,7 +501,6 @@ export const AttendancePage = () => {
         </div>
       )}
 
-      {/* Report Modal Integration */}
       <ReportPreviewModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
