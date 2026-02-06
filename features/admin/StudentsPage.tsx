@@ -1,13 +1,12 @@
-
-
 import React, { useEffect, useState } from 'react';
 import { ApiService } from '../../services/api';
 import { Student } from '../../types';
 import { Button } from '../../components/Button';
 import { AddStudentModal } from '../../components/AddStudentModal';
 import { EditStudentModal } from '../../components/EditStudentModal';
+import { StudentDetailModal } from '../../components/StudentDetailModal';
 import { BulkStudentImportModal } from '../../components/BulkStudentImportModal';
-import { Search, Plus, Filter, User, Upload, Pencil } from 'lucide-react';
+import { Search, Plus, Filter, User, Upload, Pencil, Eye } from 'lucide-react';
 import { CLASSES } from '../../constants';
 
 export const StudentsPage = () => {
@@ -19,6 +18,7 @@ export const StudentsPage = () => {
   // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -42,6 +42,11 @@ export const StudentsPage = () => {
   const handleEditClick = (student: Student) => {
     setSelectedStudent(student);
     setIsEditModalOpen(true);
+  };
+
+  const handleDetailClick = (student: Student) => {
+    setSelectedStudent(student);
+    setIsDetailModalOpen(true);
   };
 
   const filteredStudents = students.filter(s => {
@@ -131,12 +136,22 @@ export const StudentsPage = () => {
                           <td className="px-6 py-3 text-gray-600">{student.gender}</td>
                           <td className="px-6 py-3 text-gray-500 truncate max-w-[200px]">{student.address || '-'}</td>
                           <td className="px-6 py-3 text-right">
-                             <button 
-                                onClick={() => handleEditClick(student)}
-                                className="text-gray-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded transition-colors"
-                             >
-                                <Pencil className="w-4 h-4" />
-                             </button>
+                             <div className="flex justify-end gap-2">
+                                <button 
+                                    onClick={() => handleDetailClick(student)}
+                                    className="text-gray-400 hover:text-blue-600 p-1.5 hover:bg-blue-50 rounded transition-colors"
+                                    title="Lihat Detail"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    onClick={() => handleEditClick(student)}
+                                    className="text-gray-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded transition-colors"
+                                    title="Edit Data"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                             </div>
                           </td>
                        </tr>
                     ))
@@ -149,6 +164,13 @@ export const StudentsPage = () => {
       <AddStudentModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); fetchStudents(); }} />
       <EditStudentModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); fetchStudents(); }} student={selectedStudent} />
       <BulkStudentImportModal isOpen={isImportModalOpen} onClose={() => { setIsImportModalOpen(false); fetchStudents(); }} />
+      
+      <StudentDetailModal 
+        isOpen={isDetailModalOpen} 
+        onClose={() => setIsDetailModalOpen(false)} 
+        student={selectedStudent}
+        onEdit={() => { setIsDetailModalOpen(false); setIsEditModalOpen(true); }}
+      />
     </div>
   );
 };
