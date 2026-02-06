@@ -1,9 +1,12 @@
 
 
+
+
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { AttendanceStatus, SemesterRecapEntry } from '../types';
+import { PrincipalReportData } from './api';
 
 // Declare jsPDF with autoTable extension
 type jsPDFWithAutoTable = any;
@@ -385,5 +388,118 @@ export const ReportService = {
     doc.text("NIP.", 130, 270);
 
     doc.save(`Surat_Panggilan_${data.letterType}_${data.studentName.replace(/\s+/g, '_')}.pdf`);
+  },
+
+  // --- Official Ministry Report Generator (2026 Standard) ---
+  generateOfficialMinistryReport: (data: PrincipalReportData, month: string, year: string, signerName: string) => {
+    const doc = new jsPDF() as jsPDFWithAutoTable;
+    const margin = 15;
+
+    // 1. KOP SURAT RESMI (DINAS)
+    // Logo Placeholder (Left)
+    // doc.addImage(...) 
+    
+    doc.setFont("times", "bold");
+    doc.setFontSize(14);
+    doc.text("PEMERINTAH PROVINSI JAWA TIMUR", 105, 15, { align: "center" });
+    doc.setFontSize(16);
+    doc.text("DINAS PENDIDIKAN", 105, 22, { align: "center" });
+    doc.setFontSize(18);
+    doc.text("SMK EL MOSTHOFA", 105, 30, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("times", "normal");
+    doc.text("NPSN: 12345678 | Akreditasi: A", 105, 36, { align: "center" });
+    doc.text("Jl. Raya Pamekasan - Sumenep KM. 15, Pamekasan", 105, 41, { align: "center" });
+    
+    doc.setLineWidth(0.8);
+    doc.line(margin, 46, 195, 46);
+    doc.setLineWidth(0.3);
+    doc.line(margin, 47, 195, 47);
+
+    // 2. HEADER LAPORAN
+    doc.setFontSize(14);
+    doc.setFont("times", "bold");
+    doc.text("LAPORAN BULANAN SATUAN PENDIDIKAN", 105, 58, { align: "center" });
+    doc.setFontSize(12);
+    doc.text(`PERIODE: ${new Date(parseInt(year), parseInt(month)).toLocaleString('id-ID', { month: 'long' }).toUpperCase()} ${year}`, 105, 64, { align: "center" });
+
+    // 3. TABLE 1: SUMMARY EKSEKUTIF
+    doc.setFontSize(11);
+    doc.text("A. RINGKASAN EKSEKUTIF", margin, 75);
+    
+    const summaryData = [
+      ["Total Siswa Terdaftar", `${data.summary.totalStudents} Siswa`],
+      ["Rata-rata Kehadiran", `${data.summary.avgAttendance}%`],
+      ["Total Ketidakhadiran (Alpha)", `${data.summary.totalAlpha} Kejadian`],
+      ["Total Sakit / Izin", `${data.summary.totalSick + data.summary.totalPermission} Kejadian`],
+    ];
+
+    doc.autoTable({
+      startY: 80,
+      head: [],
+      body: summaryData,
+      theme: 'grid',
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 80 },
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    // 4. TABLE 2: PERFORMA PER KELAS
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFont("times", "bold");
+    doc.text("B. DATA KEHADIRAN PER ROMBONGAN BELAJAR", margin, finalY);
+
+    const classHeaders = ["No", "Kelas", "Persentase Kehadiran", "Predikat"];
+    const classRows = data.classPerformance.map((item, index) => [
+      index + 1,
+      item.className,
+      `${item.percentage}%`,
+      item.predicate
+    ]);
+
+    doc.autoTable({
+      startY: finalY + 5,
+      head: [classHeaders],
+      body: classRows,
+      theme: 'grid',
+      headStyles: { fillColor: [22, 163, 74] }, // Ministry Green
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 15 },
+        2: { halign: 'center' },
+        3: { halign: 'center', fontStyle: 'bold' }
+      },
+      didParseCell: (data: any) => {
+        // Color coding for predicate
+        if (data.section === 'body' && data.column.index === 3) {
+          if (data.cell.raw === 'Sangat Baik') data.cell.styles.textColor = [22, 163, 74];
+          if (data.cell.raw === 'Kurang') data.cell.styles.textColor = [220, 38, 38];
+        }
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    // 5. SIGNATURE BLOCK
+    let signY = doc.lastAutoTable.finalY + 20;
+    if (signY > 250) {
+      doc.addPage();
+      signY = 40;
+    }
+
+    const todayDate = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+
+    doc.setFont("times", "normal");
+    doc.text(`Pamekasan, ${todayDate}`, 140, signY);
+    doc.text("Kepala Sekolah,", 140, signY + 6);
+    
+    // Space for signature
+    doc.setFont("times", "bold");
+    doc.text(`H. BUDI SANTOSO, S.Pd`, 140, signY + 30);
+    doc.setLineWidth(0.2);
+    doc.line(140, signY + 31, 190, signY + 31); // Underline
+    doc.setFont("times", "normal");
+    doc.text("NIP. 19850101 201001 1 001", 140, signY + 36);
+
+    doc.save(`Laporan_Bulanan_Kepsek_${month}_${year}.pdf`);
   }
 };

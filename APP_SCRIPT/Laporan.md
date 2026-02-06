@@ -1,6 +1,7 @@
 
 
 
+
 /**
  * MODULE: LAPORAN & TRANSAKSI ABSENSI
  */
@@ -184,4 +185,96 @@ function getStudentAttendanceHistory(studentId) {
   const logs = attendance.filter(r => String(r.studentId) === String(studentId));
   // Sort descending by date (Newest first)
   return logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+/**
+ * FETCH PRINCIPAL REPORT DATA (EXECUTIVE SUMMARY 2026)
+ * Mengembalikan data agregat untuk laporan bulanan standar kedinasan
+ * Payload: { month: '0'..'11', year: '2024' }
+ */
+function fetchPrincipalReportData(payload) {
+  const attendance = getData(SHEETS.ATTENDANCE);
+  const students = getData(SHEETS.STUDENTS);
+  
+  const targetMonth = parseInt(payload.month);
+  const targetYear = parseInt(payload.year);
+  
+  // 1. Filter Logs by Period
+  const monthlyLogs = attendance.filter(log => {
+    const d = new Date(log.date);
+    return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+  });
+  
+  // 2. Calculate Overall Summary
+  let totalPresence = 0, totalAlpha = 0, totalSick = 0, totalPermission = 0, totalRecords = 0;
+  
+  monthlyLogs.forEach(log => {
+    totalRecords++;
+    if (log.status === 'Hadir') totalPresence++;
+    if (log.status === 'Alpha') totalAlpha++;
+    if (log.status === 'Sakit') totalSick++;
+    if (log.status === 'Izin') totalPermission++;
+  });
+  
+  const avgAttendance = totalRecords > 0 ? (totalPresence / totalRecords) * 100 : 0;
+  
+  // 3. Aggregate by Class
+  const classMap = {};
+  
+  monthlyLogs.forEach(log => {
+    const cls = log.classId || 'Unknown';
+    if (!classMap[cls]) classMap[cls] = { total: 0, present: 0 };
+    classMap[cls].total++;
+    if (log.status === 'Hadir') classMap[cls].present++;
+  });
+  
+  const classPerformance = Object.keys(classMap).map(cls => {
+    const stats = classMap[cls];
+    const pct = stats.total > 0 ? (stats.present / stats.total) * 100 : 0;
+    
+    let predicate = 'Kurang';
+    if (pct >= 90) predicate = 'Sangat Baik';
+    else if (pct >= 80) predicate = 'Baik';
+    else if (pct >= 70) predicate = 'Cukup';
+    
+    return {
+      className: cls,
+      percentage: parseFloat(pct.toFixed(1)),
+      predicate: predicate
+    };
+  }).sort((a, b) => b.percentage - a.percentage); // Rank best to worst
+  
+  // 4. Aggregate by Grade (Level 10, 11, 12)
+  const gradeMap = { '10': {t:0, p:0}, '11': {t:0, p:0}, '12': {t:0, p:0} };
+  
+  monthlyLogs.forEach(log => {
+    // Attempt to extract grade from class name (e.g., "10-TKJ-1" -> "10")
+    // Fallback: Check standard formats like "X", "XI", "XII" if needed, assuming numeric "10-" prefix for now
+    let grade = 'Other';
+    if (log.classId.startsWith('10') || log.classId.startsWith('X ')) grade = '10';
+    else if (log.classId.startsWith('11') || log.classId.startsWith('XI ')) grade = '11';
+    else if (log.classId.startsWith('12') || log.classId.startsWith('XII ')) grade = '12';
+    
+    if (gradeMap[grade]) {
+      gradeMap[grade].t++;
+      if (log.status === 'Hadir') gradeMap[grade].p++;
+    }
+  });
+  
+  const gradeComparison = Object.keys(gradeMap).map(g => ({
+    grade: `Kelas ${g}`,
+    attendance: gradeMap[g].t > 0 ? parseFloat(((gradeMap[g].p / gradeMap[g].t) * 100).toFixed(1)) : 0
+  }));
+
+  return {
+    summary: {
+      totalStudents: students.length,
+      avgAttendance: parseFloat(avgAttendance.toFixed(1)),
+      totalAlpha,
+      totalSick,
+      totalPermission
+    },
+    gradeComparison,
+    classPerformance
+  };
 }

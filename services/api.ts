@@ -1,10 +1,8 @@
-
-
 import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry, TeacherHistoryLog, StudentHistoryLog } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxIs7fciKHNzuMAD7CQvoSXgfBpkvV6CBlhRgrcMKGdhWN9ephwE1MqNpPGk-FDHWsZqA/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwEisQGdthjM-6BFYSYk1kWXpH30byynnOJbkkfHXenqqfvug-AThjenoTPPYUC4d4y/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -29,6 +27,25 @@ const fetchScript = async (action: string, payload: any = {}) => {
     throw error;
   }
 };
+
+export interface PrincipalReportData {
+  summary: {
+    totalStudents: number;
+    avgAttendance: number;
+    totalAlpha: number;
+    totalSick: number;
+    totalPermission: number;
+  };
+  gradeComparison: {
+    grade: string;
+    attendance: number;
+  }[];
+  classPerformance: {
+    className: string;
+    percentage: number;
+    predicate: string;
+  }[];
+}
 
 export const ApiService = {
   login: async (email: string, password?: string): Promise<User> => {
@@ -155,6 +172,12 @@ export const ApiService = {
   fetchStudentHistory: async (studentId: string): Promise<StudentHistoryLog[]> => {
     const data = await fetchScript('fetchStudentHistory', { studentId });
     return (data || []) as StudentHistoryLog[];
+  },
+
+  // NEW: Fetch Principal Official Report Data
+  fetchPrincipalReportData: async (month: string, year: string): Promise<PrincipalReportData> => {
+    const data = await fetchScript('fetchPrincipalReportData', { month, year });
+    return data as PrincipalReportData;
   },
 
   // --- BACKUP & RESTORE SERVICES ---

@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database, BookMarked, PieChart, Printer } from 'lucide-react';
@@ -157,6 +159,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
   const getRoleDisplay = () => {
     switch(user?.role) {
       case Role.PRINCIPAL:
+        // Principal Logic: Change title based on view
+        if (currentView === 'reports') {
+            return { title: 'Laporan Resmi', icon: FileText, desc: 'Laporan bulanan standar kementrian.' };
+        }
         return { title: 'Dashboard Eksekutif', icon: Briefcase, desc: 'Monitoring performa sekolah.' };
       case Role.COUNSELOR:
         if (currentView === 'counselor-reports') {
@@ -249,6 +255,30 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                   </div>
               )}
 
+              {/* PRINCIPAL NAVIGATION (Menu Tabs) - NEW */}
+              {user?.role === Role.PRINCIPAL && (
+                  <div className="hidden md:flex bg-gray-100 rounded-lg p-1 mr-4">
+                      <button 
+                        onClick={() => handleStandardNav('dashboard')}
+                        className={clsx(
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                            currentView === 'dashboard' || !currentView ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <LayoutDashboard className="w-4 h-4" /> Dashboard
+                      </button>
+                      <button 
+                        onClick={() => handleStandardNav('reports')}
+                        className={clsx(
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                            currentView === 'reports' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <FileText className="w-4 h-4" /> Laporan Resmi
+                      </button>
+                  </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <div className="text-right hidden sm:block">
                   <div className="text-sm font-medium text-gray-700">
@@ -326,6 +356,30 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                     )}
                  >
                     <Printer className="w-4 h-4" /> Surat
+                 </button>
+            </div>
+        )}
+
+        {/* Mobile Nav for Principal - NEW */}
+        {user?.role === Role.PRINCIPAL && (
+            <div className="md:hidden mb-6 flex gap-2">
+                 <button 
+                    onClick={() => handleStandardNav('dashboard')}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
+                        currentView === 'dashboard' || !currentView ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
+                    )}
+                 >
+                    <LayoutDashboard className="w-4 h-4" /> Dash
+                 </button>
+                 <button 
+                    onClick={() => handleStandardNav('reports')}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
+                        currentView === 'reports' ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
+                    )}
+                 >
+                    <FileText className="w-4 h-4" /> Laporan
                  </button>
             </div>
         )}

@@ -1,6 +1,7 @@
 
 
 
+
 /**
  * MODULE: API GATEWAY (Main Controller)
  * Menangani request HTTP dari React Frontend
@@ -113,6 +114,9 @@ function handleRequest(e) {
         break;
       case 'fetchStudentHistory': // NEW ROUTE FOR BK
         result = getStudentAttendanceHistory(payload.studentId);
+        break;
+      case 'fetchPrincipalReportData': // NEW ROUTE FOR PRINCIPAL
+        result = fetchPrincipalReportData(payload);
         break;
 
       // Statistik (Dashboard.gs)

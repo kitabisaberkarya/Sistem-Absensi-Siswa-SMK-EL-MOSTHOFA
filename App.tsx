@@ -1,13 +1,16 @@
 
 
+
+
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Login } from './features/auth/Login';
 import { AttendancePage } from './features/teacher/AttendancePage';
 import { TeacherReportsPage } from './features/teacher/TeacherReportsPage';
-import { CounselorReportsPage } from './features/counselor/CounselorReportsPage'; // New Import
+import { CounselorReportsPage } from './features/counselor/CounselorReportsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { PrincipalReportsPage } from './features/principal/PrincipalReportsPage'; // New Import
 import { TeachersPage } from './features/admin/TeachersPage';
 import { StudentsPage } from './features/admin/StudentsPage';
 import { AcademicsPage } from './features/admin/AcademicsPage';
@@ -31,6 +34,7 @@ const AppContent = () => {
   const isAdmin = user?.role === Role.ADMIN;
   const isTeacher = user?.role === Role.TEACHER;
   const isCounselor = user?.role === Role.COUNSELOR;
+  const isPrincipal = user?.role === Role.PRINCIPAL;
 
   // Render logic based on Role and ViewState
   const renderContent = () => {
@@ -65,7 +69,15 @@ const AppContent = () => {
         }
     }
 
-    // 4. OTHER ROLES (Principal)
+    // 4. PRINCIPAL ROUTING
+    if (isPrincipal) {
+        switch(currentView) {
+            case 'reports': return <PrincipalReportsPage />; // Mapped to existing 'reports' ViewState or generic
+            default: return <DashboardPage />;
+        }
+    }
+
+    // Fallback
     return canViewDashboard ? <DashboardPage /> : <div className="p-8">Akses Terbatas</div>;
   };
 
