@@ -7,7 +7,7 @@ export enum Role {
   ADMIN = 'ADMIN',           // Admin Sistem
 }
 
-export type ViewState = 'dashboard' | 'teachers' | 'students' | 'academics' | 'reports' | 'mailbox' | 'settings' | 'backup' | 'teacher-reports';
+export type ViewState = 'dashboard' | 'teachers' | 'students' | 'academics' | 'reports' | 'mailbox' | 'settings' | 'backup' | 'teacher-reports' | 'counselor-reports';
 
 export interface User {
   id: string;

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database, BookMarked, PieChart } from 'lucide-react';
+import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database, BookMarked, PieChart, Printer } from 'lucide-react';
 import { Role, ViewState } from '../types';
 import clsx from 'clsx';
 
@@ -159,6 +159,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
       case Role.PRINCIPAL:
         return { title: 'Dashboard Eksekutif', icon: Briefcase, desc: 'Monitoring performa sekolah.' };
       case Role.COUNSELOR:
+        if (currentView === 'counselor-reports') {
+            return { title: 'Laporan Bimbingan Konseling', icon: FileText, desc: 'Administrasi kasus & pemanggilan orang tua.' };
+        }
         return { title: 'Monitoring Konseling', icon: HeartHandshake, desc: 'Pantau kedisiplinan siswa.' };
       case Role.TEACHER:
         // Teacher Logic: Change title based on view
@@ -222,6 +225,30 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                   </div>
               )}
 
+              {/* COUNSELOR NAVIGATION (Menu Tabs) */}
+              {user?.role === Role.COUNSELOR && (
+                  <div className="hidden md:flex bg-gray-100 rounded-lg p-1 mr-4">
+                      <button 
+                        onClick={() => handleStandardNav('dashboard')}
+                        className={clsx(
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                            currentView === 'dashboard' || !currentView ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <HeartHandshake className="w-4 h-4" /> Monitoring
+                      </button>
+                      <button 
+                        onClick={() => handleStandardNav('counselor-reports')}
+                        className={clsx(
+                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                            currentView === 'counselor-reports' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <Printer className="w-4 h-4" /> Laporan & Surat
+                      </button>
+                  </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <div className="text-right hidden sm:block">
                   <div className="text-sm font-medium text-gray-700">
@@ -275,6 +302,30 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                     )}
                  >
                     <FileText className="w-4 h-4" /> Laporan
+                 </button>
+            </div>
+        )}
+
+        {/* Mobile Nav for Counselors */}
+        {user?.role === Role.COUNSELOR && (
+            <div className="md:hidden mb-6 flex gap-2">
+                 <button 
+                    onClick={() => handleStandardNav('dashboard')}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
+                        currentView === 'dashboard' || !currentView ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
+                    )}
+                 >
+                    <HeartHandshake className="w-4 h-4" /> Monitoring
+                 </button>
+                 <button 
+                    onClick={() => handleStandardNav('counselor-reports')}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
+                        currentView === 'counselor-reports' ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
+                    )}
+                 >
+                    <Printer className="w-4 h-4" /> Surat
                  </button>
             </div>
         )}

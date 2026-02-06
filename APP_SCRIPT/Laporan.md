@@ -1,5 +1,6 @@
 
 
+
 /**
  * MODULE: LAPORAN & TRANSAKSI ABSENSI
  */
@@ -144,4 +145,31 @@ function getTeacherHistory(teacherId) {
   
   // Convert to array and sort descending by date
   return Object.values(groupedLogs).sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+/**
+ * FETCH COUNSELING AGGREGATES (NEW for BK)
+ * Mengembalikan data siswa dengan tingkat ketidakhadiran tinggi
+ */
+function fetchCounselingAggregates() {
+  const students = getData(SHEETS.STUDENTS);
+  const attendance = getData(SHEETS.ATTENDANCE);
+  const aggregates = {};
+
+  // Initialize
+  students.forEach(s => {
+    aggregates[s.id] = { ...s, alpha: 0, sick: 0, permission: 0 };
+  });
+
+  // Count
+  attendance.forEach(log => {
+    if (aggregates[log.studentId]) {
+      if (log.status === 'Alpha') aggregates[log.studentId].alpha++;
+      else if (log.status === 'Sakit') aggregates[log.studentId].sick++;
+      else if (log.status === 'Izin') aggregates[log.studentId].permission++;
+    }
+  });
+
+  // Filter only those with issues (e.g. > 0 Alpha)
+  return Object.values(aggregates).filter(s => s.alpha > 0 || s.sick > 5);
 }

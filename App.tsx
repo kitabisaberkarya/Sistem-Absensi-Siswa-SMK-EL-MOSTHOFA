@@ -5,7 +5,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Login } from './features/auth/Login';
 import { AttendancePage } from './features/teacher/AttendancePage';
-import { TeacherReportsPage } from './features/teacher/TeacherReportsPage'; // New Import
+import { TeacherReportsPage } from './features/teacher/TeacherReportsPage';
+import { CounselorReportsPage } from './features/counselor/CounselorReportsPage'; // New Import
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { TeachersPage } from './features/admin/TeachersPage';
 import { StudentsPage } from './features/admin/StudentsPage';
@@ -29,6 +30,7 @@ const AppContent = () => {
   const canViewDashboard = [Role.ADMIN, Role.PRINCIPAL, Role.COUNSELOR].includes(user?.role as Role);
   const isAdmin = user?.role === Role.ADMIN;
   const isTeacher = user?.role === Role.TEACHER;
+  const isCounselor = user?.role === Role.COUNSELOR;
 
   // Render logic based on Role and ViewState
   const renderContent = () => {
@@ -49,14 +51,21 @@ const AppContent = () => {
 
     // 2. TEACHER ROUTING
     if (isTeacher) {
-        // Teacher has 'dashboard' (attendance entry) and 'teacher-reports'
         switch(currentView) {
             case 'teacher-reports': return <TeacherReportsPage />;
-            default: return <AttendancePage />; // Default to input attendance
+            default: return <AttendancePage />; 
         }
     }
 
-    // 3. OTHER ROLES (Principal / Counselor)
+    // 3. COUNSELOR ROUTING
+    if (isCounselor) {
+        switch(currentView) {
+            case 'counselor-reports': return <CounselorReportsPage />;
+            default: return <DashboardPage />;
+        }
+    }
+
+    // 4. OTHER ROLES (Principal)
     return canViewDashboard ? <DashboardPage /> : <div className="p-8">Akses Terbatas</div>;
   };
 
