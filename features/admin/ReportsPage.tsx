@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
@@ -17,17 +15,17 @@ import {
   BookOpen
 } from 'lucide-react';
 import { Button } from '../../components/Button';
-import { CLASSES, MOCK_STUDENTS } from '../../constants';
 import clsx from 'clsx';
 import { ReportService } from '../../services/ReportService';
 import { ApiService } from '../../services/api';
-import { SemesterRecapEntry } from '../../types';
+import { SemesterRecapEntry, ClassRoom } from '../../types';
 
 type ReportType = 'daily' | 'monthly' | 'student' | 'semester';
 
 export const ReportsPage = () => {
   const [activeTab, setActiveTab] = useState<ReportType>('daily');
-  const [selectedClass, setSelectedClass] = useState(CLASSES[0]);
+  const [classList, setClassList] = useState<ClassRoom[]>([]);
+  const [selectedClass, setSelectedClass] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
   const [isLoading, setIsLoading] = useState(false);
@@ -37,24 +35,20 @@ export const ReportsPage = () => {
   const [selectedYear, setSelectedYear] = useState('2024/2025');
   const [semesterData, setSemesterData] = useState<SemesterRecapEntry[]>([]);
 
-  // Mock Data Generators for Preview
-  const getDailyData = () => {
-    return MOCK_STUDENTS.filter(s => s.className === selectedClass).map((s, i) => ({
-      no: i + 1,
-      name: s.name,
-      nis: s.nis,
-      gender: s.gender,
-      status: i % 10 === 0 ? 'Sakit' : i % 15 === 0 ? 'Alpha' : 'Hadir',
-      note: i % 10 === 0 ? 'Demam' : '-'
-    }));
-  };
-
-  const getMonthlyMatrix = () => {
-    // Generate dates 1-31
-    const dates = Array.from({length: 31}, (_, i) => i + 1);
-    const students = MOCK_STUDENTS.filter(s => s.className === selectedClass);
-    return { dates, students };
-  };
+  // Load Classes
+  useEffect(() => {
+    const fetchClasses = async () => {
+        try {
+            const classes = await ApiService.fetchClasses();
+            const sorted = classes.sort((a, b) => a.name.localeCompare(b.name));
+            setClassList(sorted);
+            if (sorted.length > 0) setSelectedClass(sorted[0].name);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+    fetchClasses();
+  }, []);
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -68,7 +62,7 @@ export const ReportsPage = () => {
             alert("Gagal memuat data semester.");
         }
     } else {
-        // Mock delay for other tabs
+        // Mock delay for other tabs as they rely on simple fetching or are static for now
         setTimeout(() => setIsLoading(false), 800);
     }
     
@@ -92,23 +86,7 @@ export const ReportsPage = () => {
         }, semesterData);
         return;
     }
-
-    // Example hook into existing service
-    const data = getDailyData().map(d => ({
-        no: d.no,
-        name: d.name,
-        nis: d.nis,
-        className: selectedClass,
-        status: d.status,
-        note: d.note
-    }));
-    
-    ReportService.generatePDF({
-        title: activeTab === 'daily' ? 'Laporan Presensi Harian' : 'Laporan Berkala',
-        subtitle: `Kelas ${selectedClass}`,
-        date: activeTab === 'daily' ? selectedDate : `Bulan ${parseInt(selectedMonth)+1}`,
-        teacher: 'Administrator'
-    }, data);
+    alert("Export untuk format ini sedang dikembangkan untuk versi Realtime.");
   };
 
   const handleExportExcel = () => {
@@ -121,7 +99,7 @@ export const ReportsPage = () => {
         }, semesterData);
         return;
     }
-    // Logic for other tabs can be added here
+    alert("Export untuk format ini sedang dikembangkan untuk versi Realtime.");
   };
 
   return (
@@ -219,7 +197,7 @@ export const ReportsPage = () => {
                         onChange={(e) => setSelectedClass(e.target.value)}
                         className="w-full appearance-none bg-white border border-gray-300 text-gray-700 py-2.5 px-4 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm font-medium"
                     >
-                        {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        {classList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                     <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -379,96 +357,6 @@ export const ReportsPage = () => {
                     </p>
                 </div>
 
-                {/* META INFO */}
-                <div className="flex justify-between text-xs mb-4 font-medium text-gray-700">
-                    <div>
-                        <p>Kelas: <span className="font-bold">{selectedClass}</span></p>
-                        <p>Wali Kelas: <span className="font-bold">H. Budi Santoso, S.Pd</span></p>
-                    </div>
-                    <div className="text-right">
-                        <p>Dicetak Oleh: Administrator</p>
-                        <p>Waktu Cetak: {new Date().toLocaleTimeString('id-ID')}</p>
-                    </div>
-                </div>
-
-                {/* TABLE CONTENT: DAILY */}
-                {activeTab === 'daily' && (
-                    <table className="w-full border-collapse border border-gray-900 text-xs">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="border border-gray-600 p-2 w-10">No</th>
-                                <th className="border border-gray-600 p-2 w-24 text-left">NIS</th>
-                                <th className="border border-gray-600 p-2 text-left">Nama Lengkap</th>
-                                <th className="border border-gray-600 p-2 w-16">L/P</th>
-                                <th className="border border-gray-600 p-2 w-24">Status</th>
-                                <th className="border border-gray-600 p-2">Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {getDailyData().map((row) => (
-                                <tr key={row.no}>
-                                    <td className="border border-gray-400 p-1.5 text-center">{row.no}</td>
-                                    <td className="border border-gray-400 p-1.5">{row.nis}</td>
-                                    <td className="border border-gray-400 p-1.5 font-medium">{row.name}</td>
-                                    <td className="border border-gray-400 p-1.5 text-center">{row.gender}</td>
-                                    <td className="border border-gray-400 p-1.5 text-center">
-                                        <span className={clsx(
-                                            "font-bold",
-                                            row.status === 'Hadir' ? 'text-black' :
-                                            row.status === 'Sakit' ? 'text-gray-600' :
-                                            'text-gray-900 underline'
-                                        )}>
-                                            {row.status}
-                                        </span>
-                                    </td>
-                                    <td className="border border-gray-400 p-1.5 italic text-gray-500">{row.note}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-
-                {/* TABLE CONTENT: MONTHLY */}
-                {activeTab === 'monthly' && (
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-900 text-[10px]">
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="border border-gray-600 p-1 w-6" rowSpan={2}>No</th>
-                                    <th className="border border-gray-600 p-1 min-w-[100px] text-left" rowSpan={2}>Nama Siswa</th>
-                                    <th className="border border-gray-600 p-1 text-center" colSpan={31}>Tanggal</th>
-                                    <th className="border border-gray-600 p-1 text-center" colSpan={3}>Total</th>
-                                </tr>
-                                <tr className="bg-gray-50 text-[9px]">
-                                    {getMonthlyMatrix().dates.map(d => (
-                                        <th key={d} className="border border-gray-500 w-5">{d}</th>
-                                    ))}
-                                    <th className="border border-gray-500 w-6 bg-yellow-50">S</th>
-                                    <th className="border border-gray-500 w-6 bg-blue-50">I</th>
-                                    <th className="border border-gray-500 w-6 bg-red-50">A</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {getMonthlyMatrix().students.map((s, idx) => (
-                                    <tr key={s.id}>
-                                        <td className="border border-gray-400 text-center">{idx + 1}</td>
-                                        <td className="border border-gray-400 px-1 py-0.5 whitespace-nowrap">{s.name}</td>
-                                        {/* Mocking Matrix Data */}
-                                        {getMonthlyMatrix().dates.map(d => (
-                                            <td key={d} className="border border-gray-300 text-center text-[9px]">
-                                                {Math.random() > 0.9 ? 'S' : Math.random() > 0.95 ? 'A' : '.'}
-                                            </td>
-                                        ))}
-                                        <td className="border border-gray-400 text-center font-bold bg-yellow-50">1</td>
-                                        <td className="border border-gray-400 text-center font-bold bg-blue-50">0</td>
-                                        <td className="border border-gray-400 text-center font-bold bg-red-50">1</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
                 {/* TABLE CONTENT: SEMESTER (NEW) */}
                 {activeTab === 'semester' && (
                     <table className="w-full border-collapse border border-gray-900 text-xs">
@@ -507,13 +395,20 @@ export const ReportsPage = () => {
                             )) : (
                                 <tr>
                                     <td colSpan={9} className="border border-gray-400 p-8 text-center text-gray-500 italic">
-                                        Data belum tersedia atau filter belum sesuai.
+                                        Data belum tersedia. Silakan klik "Tampilkan".
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 )}
+
+                 {/* PLACEHOLDER FOR OTHER TABS */}
+                 {activeTab !== 'semester' && (
+                     <div className="text-center py-20 text-gray-500 italic border border-dashed border-gray-300 rounded">
+                         Fitur laporan harian/bulanan akan menampilkan data real-time setelah Anda memilih parameter dan klik Tampilkan.
+                     </div>
+                 )}
 
                 {/* SIGNATURE SECTION */}
                 <div className="mt-12 flex justify-end">

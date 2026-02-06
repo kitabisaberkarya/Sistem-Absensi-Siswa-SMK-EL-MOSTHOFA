@@ -1,6 +1,3 @@
-
-
-import { MOCK_STUDENTS } from '../constants';
 import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry } from '../types';
 
 // --- CONFIGURATION ---
@@ -9,12 +6,10 @@ const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyZtXYYlIJY7
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
-  // Check if URL is configured
+  // Production Check: Ensure URL is configured
   if (GOOGLE_SCRIPT_URL.includes('REPLACE_WITH_YOUR')) {
-    console.warn("API URL not configured. Using Mock Data Fallback.");
-    // Simulate Network Delay for mock fallback
-    await new Promise(r => setTimeout(r, 800));
-    return null; // Triggers fallback logic below
+    console.error("API URL Not Configured. Please deploy Google Apps Script and update services/api.ts");
+    throw new Error("Sistem belum terhubung ke Database. Hubungi Administrator.");
   }
 
   try {
@@ -35,297 +30,148 @@ const fetchScript = async (action: string, payload: any = {}) => {
 
 export const ApiService = {
   login: async (email: string, password?: string): Promise<User> => {
-    // Send password to backend
     const data = await fetchScript('login', { email, password });
-    
-    // Fallback to Mock if script not ready
-    if (data === null) {
-       // Mock Login Logic
-       if (email.includes('admin')) return { id: 'u_admin_01', name: 'Administrator IT', email, role: Role.ADMIN, avatar: 'https://ui-avatars.com/api/?name=Admin&background=1e1b4b&color=fff' };
-       if (email.includes('kepsek')) return { id: 'u_kepsek_01', name: 'Dr. Hartono, M.Pd', email, role: Role.PRINCIPAL, avatar: 'https://ui-avatars.com/api/?name=Kepala+Sekolah&background=0f172a&color=fff' };
-       if (email.includes('bk')) return { id: 'u_bk_01', name: 'Ibu Ratna (BK)', email, role: Role.COUNSELOR, avatar: 'https://ui-avatars.com/api/?name=Guru+BK&background=be185d&color=fff' };
-       // Default Teacher
-       return { id: 'u_teacher_01', name: 'Budi Santoso, S.Pd', email, role: Role.TEACHER, avatar: 'https://ui-avatars.com/api/?name=Guru+Mapel&background=3b82f6&color=fff' };
-    }
-    
     return data as User;
   },
 
   fetchStudentsByClass: async (className: string): Promise<Student[]> => {
     const data = await fetchScript('fetchStudentsByClass', { className });
-    // Mock Fallback
-    if (data === null) return MOCK_STUDENTS.filter(s => s.className === className);
     return (data || []) as Student[];
   },
 
-  // NEW: Fetch all students for Admin List
   fetchAllStudents: async (): Promise<Student[]> => {
     const data = await fetchScript('fetchAllStudents');
-    if (data === null) return MOCK_STUDENTS;
     return (data || []) as Student[];
   },
 
-  // NEW: Fetch all teachers for Admin List
   fetchTeachers: async (): Promise<User[]> => {
     const data = await fetchScript('fetchTeachers');
-    
-    // STRICT CHECK: Only return Mock if data is explicitly null (URL not configured)
-    if (data === null) {
-        return Array.from({ length: 10 }).map((_, i) => ({
-            id: `T_${i}`,
-            name: ['Budi Santoso, S.Pd', 'Siti Aminah, M.Pd', 'Joko Anwar, S.Si', 'Rina Nose, S.Hum'][i % 4],
-            email: `guru.${i}@sekolah.sch.id`,
-            role: Role.TEACHER,
-            nip: `198${i}0101 201001 1 00${i}`,
-            subject: ['Matematika', 'Bahasa Indonesia', 'Fisika', 'Sejarah'][i % 4],
-            phone: '08123456789',
-            status: i % 5 === 0 ? 'Inactive' : 'Active',
-            avatar: `https://ui-avatars.com/api/?name=Guru+${i}&background=random`,
-            gender: i % 2 === 0 ? 'L' : 'P'
-        }));
-    }
-    
     return (data || []) as User[];
   },
 
   submitAttendance: async (payload: SubmissionPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('submitAttendance', payload);
-    if (data === null) return { success: true, message: 'Data absensi berhasil disimpan! (MOCK)' };
     return { success: true, message: data.message };
   },
 
   createTeacher: async (payload: CreateTeacherPayload): Promise<{ success: boolean; message: string; id: string }> => {
     const data = await fetchScript('createTeacher', payload);
-    if (data === null) {
-         if(payload.email.includes("error")) throw new Error("Email exists (Mock)");
-         return { success: true, message: `Guru ${payload.fullName} berhasil ditambahkan (MOCK).`, id: `T_MOCK_${Date.now()}` };
-    }
     return { success: true, message: data.message, id: data.id };
   },
 
   updateTeacher: async (payload: UpdateTeacherPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('updateTeacher', payload);
-    if (data === null) {
-         return { success: true, message: `Data ${payload.fullName} berhasil diperbarui (MOCK).` };
-    }
     return { success: true, message: data.message };
   },
 
   importTeachers: async (teachers: ImportedTeacher[]): Promise<{ success: boolean; message: string; count: number }> => {
     const data = await fetchScript('importTeachers', { teachers });
-    if (data === null) {
-      return { success: true, message: `Berhasil mengimpor ${teachers.length} guru (MOCK).`, count: teachers.length };
-    }
     return data;
   },
 
   createStudent: async (payload: CreateStudentPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createStudent', payload);
-    if (data === null) return { success: true, message: 'Siswa berhasil ditambahkan (MOCK).' };
     return { success: true, message: data.message };
   },
 
   updateStudent: async (payload: UpdateStudentPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('updateStudent', payload);
-    if (data === null) return { success: true, message: 'Data siswa berhasil diperbarui (MOCK).' };
     return { success: true, message: data.message };
   },
 
   deleteStudent: async (id: string): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('deleteStudent', { id });
-    if (data === null) return { success: true, message: 'Siswa berhasil dihapus (MOCK).' };
     return { success: true, message: data.message };
   },
 
   importStudents: async (students: ImportedStudent[]): Promise<{ success: boolean; message: string; count: number }> => {
     const data = await fetchScript('importStudents', { students });
-    if (data === null) {
-      return { success: true, message: `Berhasil mengimpor ${students.length} siswa (MOCK).`, count: students.length };
-    }
     return data;
   },
 
-  // --- ACADEMIC SERVICES (NEW) ---
+  // --- ACADEMIC SERVICES ---
 
   fetchMajors: async (): Promise<Major[]> => {
     const data = await fetchScript('fetchMajors');
-    if (data === null) {
-        // Mock Majors
-        return [
-            { id: 'M1', code: 'IPA', name: 'Ilmu Pengetahuan Alam' },
-            { id: 'M2', code: 'IPS', name: 'Ilmu Pengetahuan Sosial' },
-            { id: 'M3', code: 'TKJ', name: 'Teknik Komputer Jaringan' },
-            { id: 'M4', code: 'TBSM', name: 'Teknik Bisnis Sepeda Motor' }
-        ];
-    }
-    return data as Major[];
+    return (data || []) as Major[];
   },
 
   createMajor: async (payload: { code: string; name: string }): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createMajor', payload);
-    if (data === null) return { success: true, message: 'Jurusan berhasil ditambahkan (MOCK).' };
     return { success: true, message: data.message };
   },
   
   deleteMajor: async (id: string): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('deleteMajor', { id });
-    if (data === null) return { success: true, message: 'Jurusan dihapus (MOCK).' };
     return { success: true, message: data.message };
   },
 
   fetchSubjects: async (): Promise<Subject[]> => {
     const data = await fetchScript('fetchSubjects');
-    if (data === null) {
-        // Mock Subjects
-        return [
-            { id: 'SUB1', code: 'MAT', name: 'Matematika', category: 'Umum' },
-            { id: 'SUB2', code: 'BIN', name: 'Bahasa Indonesia', category: 'Umum' },
-            { id: 'SUB3', code: 'ENG', name: 'Bahasa Inggris', category: 'Umum' },
-            { id: 'SUB4', code: 'FIS', name: 'Fisika', category: 'Peminatan' },
-            { id: 'SUB5', code: 'PROD1', name: 'Administrasi Infrastruktur Jaringan', category: 'Kejuruan' }
-        ];
-    }
-    return data as Subject[];
+    return (data || []) as Subject[];
   },
 
   createSubject: async (payload: { code: string; name: string; category: string }): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createSubject', payload);
-    if (data === null) return { success: true, message: 'Mapel berhasil ditambahkan (MOCK).' };
     return { success: true, message: data.message };
   },
 
   deleteSubject: async (id: string): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('deleteSubject', { id });
-    if (data === null) return { success: true, message: 'Mapel dihapus (MOCK).' };
     return { success: true, message: data.message };
   },
 
-  // --- CLASSES SERVICES (NEW) ---
+  // --- CLASSES SERVICES ---
   fetchClasses: async (): Promise<ClassRoom[]> => {
     const data = await fetchScript('fetchClasses');
-    if (data === null) {
-        return [
-            { id: 'C1', name: '10-IPA-1', level: '10', major: 'IPA' },
-            { id: 'C2', name: '11-IPS-2', level: '11', major: 'IPS' },
-            { id: 'C3', name: '12-TKJ-1', level: '12', major: 'TKJ' },
-        ];
-    }
-    return data as ClassRoom[];
+    return (data || []) as ClassRoom[];
   },
 
   createClass: async (payload: { name: string; level: string; major: string }): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createClass', payload);
-    if (data === null) return { success: true, message: 'Kelas berhasil ditambahkan (MOCK).' };
     return { success: true, message: data.message };
   },
 
   deleteClass: async (id: string): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('deleteClass', { id });
-    if (data === null) return { success: true, message: 'Kelas berhasil dihapus (MOCK).' };
     return { success: true, message: data.message };
   },
 
-  // --- REPORT SERVICES (SEMESTER RECAP) ---
+  // --- REPORT SERVICES ---
   fetchSemesterRecap: async (classId: string, semester: string, year: string): Promise<SemesterRecapEntry[]> => {
     const data = await fetchScript('fetchSemesterRecap', { classId, semester, year });
-    
-    if (data === null) {
-      // Mock Data Generation for Semester Recap
-      const students = MOCK_STUDENTS.filter(s => s.className === classId);
-      
-      return students.map(s => {
-        // Generate somewhat random realistic attendance data
-        const totalMeetings = 96; // Approx 16 weeks * 6 days
-        const sick = Math.floor(Math.random() * 5); // 0-4 days
-        const permission = Math.floor(Math.random() * 3); // 0-2 days
-        const alpha = Math.random() > 0.8 ? Math.floor(Math.random() * 5) : 0; // mostly 0, some have alpha
-        const present = totalMeetings - sick - permission - alpha;
-        const percentage = parseFloat(((present / totalMeetings) * 100).toFixed(1));
-
-        return {
-          studentId: s.id,
-          name: s.name,
-          nis: s.nis,
-          className: s.className,
-          gender: s.gender,
-          sick,
-          permission,
-          alpha,
-          present,
-          totalMeetings,
-          percentage
-        };
-      });
-    }
-    
-    return data as SemesterRecapEntry[];
+    return (data || []) as SemesterRecapEntry[];
   },
 
   // --- BACKUP & RESTORE SERVICES ---
 
   createBackup: async (): Promise<BackupResponse> => {
     const data = await fetchScript('backupDatabase');
-    if (data === null) {
-        return {
-            success: true,
-            message: "Backup created (MOCK)",
-            timestamp: new Date().toISOString(),
-            data: {
-                timestamp: new Date().toISOString(),
-                version: "1.0",
-                users: [],
-                students: [],
-                attendance: [],
-                logs: [],
-                majors: [],
-                subjects: [],
-                classes: []
-            }
-        };
-    }
     return data;
   },
 
   restoreDatabase: async (backupData: BackupData): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('restoreDatabase', { data: backupData });
-    if (data === null) return { success: true, message: "Database restored successfully (MOCK)" };
     return data;
   },
 
   fetchDashboardStats: async (): Promise<DashboardStats> => {
     const data = await fetchScript('fetchDashboardStats');
-    if (data === null) {
-      return {
-        totalStudents: 450,
-        attendanceRate: 94.2,
-        absentToday: 24,
-        weeklyData: [
-          { day: 'Senin', present: 430, absent: 20 },
-          { day: 'Selasa', present: 440, absent: 10 },
-          { day: 'Rabu', present: 435, absent: 15 },
-          { day: 'Kamis', present: 445, absent: 5 },
-          { day: 'Jumat', present: 420, absent: 30 },
-        ],
-        classRankings: [
-          { className: '12-IPA-1', attendanceRate: 99.5, label: 'Best' },
-          { className: '10-IPA-2', attendanceRate: 98.2, label: 'Neutral' },
-          { className: '11-IPS-1', attendanceRate: 88.5, label: 'Warning' },
-        ],
-        teacherSubmissionRate: 85,
-        atRiskStudents: [
-          { id: 'S1024', name: 'Yuni Shara', className: '11-IPS-1', alphaCount: 5, sickCount: 2, lastAbsent: 'Hari ini' },
-        ],
-        absenteeComposition: [
-          { name: 'Sakit', value: 12, color: '#eab308' },
-          { name: 'Izin', value: 8, color: '#3b82f6' },
-          { name: 'Alpha', value: 4, color: '#ef4444' },
-        ],
-        systemLogs: [
-          { id: 'L01', user: 'System', action: 'Using Mock Data (Config URL)', timestamp: 'Now', status: 'Success' },
-        ],
-        totalApiRequests: 0,
-        activeUsers: 1
-      };
+    if (!data) {
+        // Return empty structure if no data yet to prevent crash
+        return {
+            totalStudents: 0,
+            attendanceRate: 0,
+            absentToday: 0,
+            weeklyData: [],
+            classRankings: [],
+            teacherSubmissionRate: 0,
+            atRiskStudents: [],
+            absenteeComposition: [],
+            systemLogs: [],
+            totalApiRequests: 0,
+            activeUsers: 0
+        };
     }
     return data as DashboardStats;
   }

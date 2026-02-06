@@ -1,10 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Hash, School, MapPin, Phone, CheckCircle2, GraduationCap } from 'lucide-react';
 import { Button } from './Button';
 import { ApiService } from '../services/api';
-import { CreateStudentPayload } from '../types';
-import { CLASSES } from '../constants';
+import { CreateStudentPayload, ClassRoom } from '../types';
 import clsx from 'clsx';
 
 interface Props {
@@ -15,6 +13,7 @@ interface Props {
 export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [classList, setClassList] = useState<ClassRoom[]>([]);
   const [formData, setFormData] = useState<CreateStudentPayload>({
     name: '',
     nis: '',
@@ -23,6 +22,21 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose }) => {
     parentPhone: '',
     address: ''
   });
+
+  // Fetch classes when modal opens
+  useEffect(() => {
+    if (isOpen) {
+        const fetchClasses = async () => {
+            try {
+                const classes = await ApiService.fetchClasses();
+                setClassList(classes.sort((a, b) => a.name.localeCompare(b.name)));
+            } catch (error) {
+                console.error("Failed to fetch classes", error);
+            }
+        };
+        fetchClasses();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -122,7 +136,7 @@ export const AddStudentModal: React.FC<Props> = ({ isOpen, onClose }) => {
                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all appearance-none bg-white"
                         >
                             <option value="">-- Pilih Kelas --</option>
-                            {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                            {classList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </select>
                     </div>
                 </div>

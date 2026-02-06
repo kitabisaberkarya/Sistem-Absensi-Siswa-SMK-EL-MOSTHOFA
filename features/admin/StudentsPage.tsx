@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { ApiService } from '../../services/api';
-import { Student } from '../../types';
+import { Student, ClassRoom } from '../../types';
 import { Button } from '../../components/Button';
 import { AddStudentModal } from '../../components/AddStudentModal';
 import { EditStudentModal } from '../../components/EditStudentModal';
 import { StudentDetailModal } from '../../components/StudentDetailModal';
 import { BulkStudentImportModal } from '../../components/BulkStudentImportModal';
-import { Search, Plus, Filter, User, Upload, Pencil, Eye } from 'lucide-react';
-import { CLASSES } from '../../constants';
+import { Search, Plus, Filter, User, Upload, Pencil, Eye, RefreshCw } from 'lucide-react';
 
 export const StudentsPage = () => {
   const [students, setStudents] = useState<Student[]>([]);
+  const [classList, setClassList] = useState<ClassRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClass, setFilterClass] = useState('');
@@ -23,11 +23,15 @@ export const StudentsPage = () => {
   
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  const fetchStudents = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const data = await ApiService.fetchAllStudents();
-      setStudents(data);
+      const [studentsData, classesData] = await Promise.all([
+        ApiService.fetchAllStudents(),
+        ApiService.fetchClasses()
+      ]);
+      setStudents(studentsData);
+      setClassList(classesData.sort((a, b) => a.name.localeCompare(b.name)));
     } catch (error) {
       console.error(error);
     } finally {
@@ -36,7 +40,7 @@ export const StudentsPage = () => {
   };
 
   useEffect(() => {
-    fetchStudents();
+    loadData();
   }, []);
 
   const handleEditClick = (student: Student) => {
@@ -65,6 +69,9 @@ export const StudentsPage = () => {
           <p className="text-gray-500 text-sm">Master data peserta didik aktif.</p>
         </div>
         <div className="flex gap-2">
+            <Button variant="ghost" onClick={loadData} title="Refresh Data">
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
             <Button variant="secondary" onClick={() => setIsImportModalOpen(true)} className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50">
                <Upload className="w-4 h-4 mr-2" /> Import
             </Button>
@@ -93,7 +100,11 @@ export const StudentsPage = () => {
                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm appearance-none bg-white"
             >
                <option value="">Semua Kelas</option>
-               {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+               {classList.length > 0 ? (
+                 classList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)
+               ) : (
+                 <option disabled>Memuat data kelas...</option>
+               )}
             </select>
             <Filter className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
          </div>
@@ -161,9 +172,9 @@ export const StudentsPage = () => {
         </div>
       </div>
 
-      <AddStudentModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); fetchStudents(); }} />
-      <EditStudentModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); fetchStudents(); }} student={selectedStudent} />
-      <BulkStudentImportModal isOpen={isImportModalOpen} onClose={() => { setIsImportModalOpen(false); fetchStudents(); }} />
+      <AddStudentModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); loadData(); }} />
+      <EditStudentModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); loadData(); }} student={selectedStudent} />
+      <BulkStudentImportModal isOpen={isImportModalOpen} onClose={() => { setIsImportModalOpen(false); loadData(); }} />
       
       <StudentDetailModal 
         isOpen={isDetailModalOpen} 

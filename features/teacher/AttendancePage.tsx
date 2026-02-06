@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ApiService } from '../../services/api';
-import { CLASSES, SUBJECTS } from '../../constants';
-import { Student, AttendanceStatus, AttendanceRecord } from '../../types';
+import { Student, AttendanceStatus, AttendanceRecord, ClassRoom, Subject } from '../../types';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { ReportPreviewModal } from '../../components/ReportPreviewModal';
@@ -28,7 +27,12 @@ export const AttendancePage = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   
-  // Data State
+  // Dynamic Data State
+  const [classList, setClassList] = useState<ClassRoom[]>([]);
+  const [subjectList, setSubjectList] = useState<Subject[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Student Data State
   const [students, setStudents] = useState<Student[]>([]);
   const [topic, setTopic] = useState(''); // Jurnal Materi
   
@@ -78,6 +82,26 @@ export const AttendancePage = () => {
       icon: XCircle 
     },
   ];
+
+  // Load Classes and Subjects on Mount
+  useEffect(() => {
+    const fetchData = async () => {
+        setDataLoading(true);
+        try {
+            const [classes, subjects] = await Promise.all([
+                ApiService.fetchClasses(),
+                ApiService.fetchSubjects()
+            ]);
+            setClassList(classes.sort((a, b) => a.name.localeCompare(b.name)));
+            setSubjectList(subjects.sort((a, b) => a.name.localeCompare(b.name)));
+        } catch (err) {
+            console.error("Failed to load metadata", err);
+        } finally {
+            setDataLoading(false);
+        }
+    };
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (selectedClass) {
@@ -228,9 +252,10 @@ export const AttendancePage = () => {
                 className="w-full appearance-none rounded-xl border-gray-200 border bg-gray-50 p-3 pl-4 pr-10 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all font-medium text-gray-700"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
+                disabled={dataLoading}
               >
-                <option value="">-- Pilih Kelas --</option>
-                {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">{dataLoading ? "Memuat Data..." : "-- Pilih Kelas --"}</option>
+                {classList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                 <Filter className="w-4 h-4" />
@@ -244,9 +269,10 @@ export const AttendancePage = () => {
                 className="w-full appearance-none rounded-xl border-gray-200 border bg-gray-50 p-3 pl-4 pr-10 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all font-medium text-gray-700"
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
+                disabled={dataLoading}
               >
-                <option value="">-- Pilih Mapel --</option>
-                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                <option value="">{dataLoading ? "Memuat Data..." : "-- Pilih Mapel --"}</option>
+                {subjectList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                 <BookOpen className="w-4 h-4" />
@@ -282,7 +308,7 @@ export const AttendancePage = () => {
       {loading ? (
         <div className="text-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-brand-100 border-t-brand-600 mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">Mengambil data siswa...</p>
+          <p className="text-gray-500 font-medium">Mengambil data siswa dari database...</p>
         </div>
       ) : students.length > 0 ? (
         <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
@@ -444,6 +470,7 @@ export const AttendancePage = () => {
           <p className="text-gray-500 max-w-sm mx-auto mt-2">
             Pilih <span className="font-semibold text-brand-600">Kelas</span> dan <span className="font-semibold text-brand-600">Mata Pelajaran</span> di bagian atas untuk memuat daftar siswa.
           </p>
+          {dataLoading && <p className="text-xs text-gray-400 mt-2">Sedang memuat data referensi...</p>}
         </div>
       )}
 

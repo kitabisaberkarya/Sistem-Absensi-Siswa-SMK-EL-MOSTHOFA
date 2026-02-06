@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, User, Hash, School, MapPin, Phone, CheckCircle2, GraduationCap, Trash2, Save } from 'lucide-react';
 import { Button } from './Button';
 import { ApiService } from '../services/api';
-import { UpdateStudentPayload, Student } from '../types';
-import { CLASSES } from '../constants';
+import { UpdateStudentPayload, Student, ClassRoom } from '../types';
 import clsx from 'clsx';
 
 interface Props {
@@ -16,6 +15,7 @@ export const EditStudentModal: React.FC<Props> = ({ isOpen, onClose, student }) 
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [classList, setClassList] = useState<ClassRoom[]>([]);
   const [formData, setFormData] = useState<UpdateStudentPayload>({
     id: '',
     name: '',
@@ -26,17 +26,32 @@ export const EditStudentModal: React.FC<Props> = ({ isOpen, onClose, student }) 
     address: ''
   });
 
+  // Fetch classes & sync data
   useEffect(() => {
-    if (isOpen && student) {
-      setFormData({
-        id: student.id,
-        name: student.name,
-        nis: student.nis,
-        className: student.className,
-        gender: student.gender,
-        parentPhone: student.parentPhone || '',
-        address: student.address || ''
-      });
+    if (isOpen) {
+        // Fetch classes
+        const fetchClasses = async () => {
+            try {
+                const classes = await ApiService.fetchClasses();
+                setClassList(classes.sort((a, b) => a.name.localeCompare(b.name)));
+            } catch (error) {
+                console.error("Failed to fetch classes", error);
+            }
+        };
+        fetchClasses();
+
+        // Sync Student Data
+        if (student) {
+            setFormData({
+                id: student.id,
+                name: student.name,
+                nis: student.nis,
+                className: student.className,
+                gender: student.gender,
+                parentPhone: student.parentPhone || '',
+                address: student.address || ''
+            });
+        }
     }
   }, [isOpen, student]);
 
@@ -145,7 +160,7 @@ export const EditStudentModal: React.FC<Props> = ({ isOpen, onClose, student }) 
                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all appearance-none bg-white"
                         >
                             <option value="">-- Pilih Kelas --</option>
-                            {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                            {classList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </select>
                     </div>
                 </div>
