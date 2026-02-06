@@ -16,7 +16,9 @@ import {
   CheckSquare,
   Filter,
   Calendar,
-  FileText
+  FileText,
+  Users,
+  AlertTriangle
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -46,6 +48,7 @@ export const AttendancePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false); // New state to track if a search was performed
 
   // Status Configuration for UI
   const statusConfig = [
@@ -107,6 +110,7 @@ export const AttendancePage = () => {
     if (selectedClass) {
       const fetchStudents = async () => {
         setLoading(true);
+        setHasSearched(true);
         try {
           const data = await ApiService.fetchStudentsByClass(selectedClass);
           setStudents(data);
@@ -116,6 +120,7 @@ export const AttendancePage = () => {
           setTopic('');
         } catch (error) {
           console.error("Failed to fetch students", error);
+          alert("Gagal mengambil data siswa. Periksa koneksi internet.");
         } finally {
           setLoading(false);
         }
@@ -123,6 +128,7 @@ export const AttendancePage = () => {
       fetchStudents();
     } else {
       setStudents([]);
+      setHasSearched(false);
     }
   }, [selectedClass]);
 
@@ -191,6 +197,7 @@ export const AttendancePage = () => {
         setSelectedSubject('');
         setStudents([]);
         setTopic('');
+        setHasSearched(false);
       }, 2500);
       
     } catch (error) {
@@ -228,6 +235,8 @@ export const AttendancePage = () => {
     const absent = marked - present;
     return { total, marked, present, absent };
   }, [students, records]);
+
+  // --- RENDER LOGIC ---
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
@@ -305,12 +314,18 @@ export const AttendancePage = () => {
         </div>
       )}
 
-      {loading ? (
-        <div className="text-center py-20">
+      {/* --- CONDITIONAL RENDERING --- */}
+      
+      {/* 1. STATE: LOADING */}
+      {loading && (
+        <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-brand-100 border-t-brand-600 mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">Mengambil data siswa dari database...</p>
+          <p className="text-gray-500 font-medium">Mengambil data siswa kelas {selectedClass}...</p>
         </div>
-      ) : students.length > 0 ? (
+      )}
+
+      {/* 2. STATE: ACTIVE (Data Loaded & Not Empty) */}
+      {!loading && students.length > 0 && (
         <div className="space-y-4 animate-in fade-in zoom-in-95 duration-500">
           
           {/* Toolbar */}
@@ -461,10 +476,31 @@ export const AttendancePage = () => {
              </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* 3. STATE: EMPTY (Selected, Not Loading, but No Students) */}
+      {!loading && hasSearched && students.length === 0 && (
+        <div className="text-center py-16 bg-white rounded-2xl border border-red-200 shadow-sm">
+          <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+             <AlertTriangle className="w-10 h-10 text-red-500" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">Data Siswa Tidak Ditemukan</h3>
+          <p className="text-gray-500 max-w-md mx-auto mt-2">
+            Kelas <strong>"{selectedClass}"</strong> belum memiliki data siswa yang terdaftar di database.
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
+             <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                Tips: Pastikan nama kelas sesuai dengan Data Master Siswa
+             </span>
+          </div>
+        </div>
+      )}
+
+      {/* 4. STATE: IDLE (Initial State) */}
+      {!loading && !hasSearched && (
         <div className="text-center py-24 bg-white rounded-2xl border border-dashed border-gray-300">
           <div className="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-             <BookOpen className="w-10 h-10 text-gray-400" />
+             <Users className="w-10 h-10 text-gray-400" />
           </div>
           <h3 className="text-lg font-bold text-gray-900">Mulai Kelas Baru</h3>
           <p className="text-gray-500 max-w-sm mx-auto mt-2">
