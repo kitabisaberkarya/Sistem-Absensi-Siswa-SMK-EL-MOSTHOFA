@@ -1,11 +1,11 @@
 
 
 import { MOCK_STUDENTS } from '../constants';
-import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom } from '../types';
+import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzbZFTh75pLf8pbB6W_wRPZ_wgeQqbR4fpywkGg9NHuAkKET11qKH-oGpqgIKs8ylv4Aw/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyZtXYYlIJY7WXdULlYM7JfCxThIekk8j1o52F5bKL7eqVS4jvB9RbPcUKS7-JDlOvoA/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -125,6 +125,18 @@ export const ApiService = {
     return { success: true, message: data.message };
   },
 
+  updateStudent: async (payload: UpdateStudentPayload): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('updateStudent', payload);
+    if (data === null) return { success: true, message: 'Data siswa berhasil diperbarui (MOCK).' };
+    return { success: true, message: data.message };
+  },
+
+  deleteStudent: async (id: string): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('deleteStudent', { id });
+    if (data === null) return { success: true, message: 'Siswa berhasil dihapus (MOCK).' };
+    return { success: true, message: data.message };
+  },
+
   importStudents: async (students: ImportedStudent[]): Promise<{ success: boolean; message: string; count: number }> => {
     const data = await fetchScript('importStudents', { students });
     if (data === null) {
@@ -211,6 +223,42 @@ export const ApiService = {
     const data = await fetchScript('deleteClass', { id });
     if (data === null) return { success: true, message: 'Kelas berhasil dihapus (MOCK).' };
     return { success: true, message: data.message };
+  },
+
+  // --- REPORT SERVICES (SEMESTER RECAP) ---
+  fetchSemesterRecap: async (classId: string, semester: string, year: string): Promise<SemesterRecapEntry[]> => {
+    const data = await fetchScript('fetchSemesterRecap', { classId, semester, year });
+    
+    if (data === null) {
+      // Mock Data Generation for Semester Recap
+      const students = MOCK_STUDENTS.filter(s => s.className === classId);
+      
+      return students.map(s => {
+        // Generate somewhat random realistic attendance data
+        const totalMeetings = 96; // Approx 16 weeks * 6 days
+        const sick = Math.floor(Math.random() * 5); // 0-4 days
+        const permission = Math.floor(Math.random() * 3); // 0-2 days
+        const alpha = Math.random() > 0.8 ? Math.floor(Math.random() * 5) : 0; // mostly 0, some have alpha
+        const present = totalMeetings - sick - permission - alpha;
+        const percentage = parseFloat(((present / totalMeetings) * 100).toFixed(1));
+
+        return {
+          studentId: s.id,
+          name: s.name,
+          nis: s.nis,
+          className: s.className,
+          gender: s.gender,
+          sick,
+          permission,
+          alpha,
+          present,
+          totalMeetings,
+          percentage
+        };
+      });
+    }
+    
+    return data as SemesterRecapEntry[];
   },
 
   // --- BACKUP & RESTORE SERVICES ---

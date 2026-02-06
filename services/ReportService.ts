@@ -1,7 +1,9 @@
+
+
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { AttendanceStatus } from '../types';
+import { AttendanceStatus, SemesterRecapEntry } from '../types';
 
 // Declare jsPDF with autoTable extension
 // Using any to prevent type errors with jsPDF properties and autotable extension
@@ -55,7 +57,7 @@ export const ReportService = {
     }
   },
 
-  // --- PDF Generation ---
+  // --- PDF Generation (Generic Daily/Student) ---
   generatePDF: (meta: ReportMeta, data: ReportRow[]) => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
 
@@ -125,7 +127,7 @@ export const ReportService = {
     doc.save(`${meta.title.replace(/\s+/g, '_')}_${meta.date}.pdf`);
   },
 
-  // --- Excel Generation ---
+  // --- Excel Generation (Generic) ---
   generateExcel: (meta: ReportMeta, data: ReportRow[]) => {
     // 1. Prepare Data with proper headers
     const excelData = data.map(row => ({
@@ -157,5 +159,125 @@ export const ReportService = {
 
     // 5. Download
     XLSX.writeFile(workbook,(`${meta.title.replace(/\s+/g, '_')}_${meta.date}.xlsx`));
+  },
+
+  // --- PDF Generation (Semester Recap) ---
+  generateSemesterPDF: (meta: ReportMeta, data: SemesterRecapEntry[]) => {
+    const doc = new jsPDF() as jsPDFWithAutoTable;
+
+    // Header Design
+    doc.setFillColor(37, 99, 235); // Brand Blue
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(meta.title, 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.subtitle, 14, 30);
+
+    // Meta Info Block
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(10);
+    doc.text(`Periode: ${meta.date}`, 14, 50);
+    doc.text(`Wali Kelas/Admin: ${meta.teacher || '-'}`, 14, 55);
+
+    // Table
+    const tableColumn = ["No", "NIS", "Nama Siswa", "Hadir", "Sakit", "Izin", "Alpha", "% Kehadiran"];
+    
+    const tableRows = data.map((row, idx) => [
+      idx + 1,
+      row.nis,
+      row.name,
+      row.present,
+      row.sick,
+      row.permission,
+      row.alpha,
+      `${row.percentage}%`
+    ]);
+
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 65,
+      theme: 'striped',
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: [37, 99, 235],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 25 },
+        3: { halign: 'center', fontStyle: 'bold' }, // Present
+        4: { halign: 'center' }, // Sick
+        5: { halign: 'center' }, // Permission
+        6: { halign: 'center', textColor: [220, 38, 38] }, // Alpha (Red)
+        7: { halign: 'center', fontStyle: 'bold' }, // %
+      },
+      didParseCell: (data: any) => {
+         // Highlight low attendance
+         if (data.section === 'body' && data.column.index === 7) {
+            const val = parseFloat(data.cell.raw.replace('%', ''));
+            if (val < 75) {
+                data.cell.styles.textColor = [220, 38, 38]; // Red
+            } else if (val >= 90) {
+                data.cell.styles.textColor = [22, 163, 74]; // Green
+            }
+         }
+      }
+    });
+
+    // Footer
+    const finalY = doc.lastAutoTable.finalY + 15;
+    
+    // Simple Signature Area
+    if (finalY < 250) {
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text("Mengetahui,", 140, finalY);
+        doc.text("Kepala Sekolah", 140, finalY + 5);
+        doc.text("( ................................... )", 140, finalY + 25);
+    }
+
+    doc.save(`Rekap_Semester_${meta.subtitle.replace(/\s+/g, '_')}.pdf`);
+  },
+
+  // --- Excel Generation (Semester Recap) ---
+  generateSemesterExcel: (meta: ReportMeta, data: SemesterRecapEntry[]) => {
+    const excelData = data.map((row, idx) => ({
+      'No': idx + 1,
+      'NIS': row.nis,
+      'Nama Siswa': row.name,
+      'L/P': row.gender,
+      'Hadir (H)': row.present,
+      'Sakit (S)': row.sick,
+      'Izin (I)': row.permission,
+      'Alpha (A)': row.alpha,
+      'Total Pertemuan': row.totalMeetings,
+      'Persentase (%)': row.percentage
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    const wscols = [
+      { wch: 5 }, { wch: 15 }, { wch: 30 }, { wch: 5 }, 
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, 
+      { wch: 15 }, { wch: 15 }
+    ];
+    worksheet['!cols'] = wscols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Semester");
+    XLSX.writeFile(workbook, `Rekap_Semester_${meta.subtitle.replace(/\s+/g, '_')}.xlsx`);
   }
 };

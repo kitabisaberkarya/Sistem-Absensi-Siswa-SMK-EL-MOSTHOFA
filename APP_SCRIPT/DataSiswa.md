@@ -1,4 +1,5 @@
 
+
 /**
  * MODULE: MANAJEMEN SISWA
  */
@@ -36,6 +37,50 @@ function createStudent(payload) {
   
   logSystem('ADMIN', `Added Student: ${payload.name} to ${payload.className}`);
   return { message: 'Student created successfully' };
+}
+
+function updateStudent(payload) {
+  const sheet = getSheetOrSetup(SHEETS.STUDENTS);
+  const data = sheet.getDataRange().getValues();
+  // Headers: id(0), name(1), nis(2), className(3), gender(4), parentPhone(5), address(6)
+  
+  const idColIndex = 0;
+  let rowIndex = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idColIndex]) === String(payload.id)) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) throw new Error("Student ID not found.");
+
+  // Update Cells
+  sheet.getRange(rowIndex, 2).setValue(payload.name);
+  // NIS (col 3) is usually PK, but if you allow update: sheet.getRange(rowIndex, 3).setValue(payload.nis);
+  sheet.getRange(rowIndex, 4).setValue(payload.className);
+  sheet.getRange(rowIndex, 5).setValue(payload.gender);
+  sheet.getRange(rowIndex, 6).setValue(payload.parentPhone);
+  sheet.getRange(rowIndex, 7).setValue(payload.address);
+
+  logSystem('ADMIN', `Updated Student: ${payload.name} (${payload.id})`);
+  return { message: 'Student updated successfully' };
+}
+
+function deleteStudent(payload) {
+  const sheet = getSheetOrSetup(SHEETS.STUDENTS);
+  const data = sheet.getDataRange().getValues();
+  const idColIndex = 0;
+  
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idColIndex]) === String(payload.id)) {
+      sheet.deleteRow(i + 1);
+      logSystem('ADMIN', `Deleted Student ID: ${payload.id}`);
+      return { message: 'Student deleted successfully' };
+    }
+  }
+  throw new Error("Student ID not found for deletion.");
 }
 
 function importStudents(studentsList) {

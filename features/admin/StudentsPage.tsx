@@ -1,11 +1,13 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { ApiService } from '../../services/api';
 import { Student } from '../../types';
 import { Button } from '../../components/Button';
 import { AddStudentModal } from '../../components/AddStudentModal';
+import { EditStudentModal } from '../../components/EditStudentModal';
 import { BulkStudentImportModal } from '../../components/BulkStudentImportModal';
-import { Search, Plus, Filter, User, Upload } from 'lucide-react';
+import { Search, Plus, Filter, User, Upload, Pencil } from 'lucide-react';
 import { CLASSES } from '../../constants';
 
 export const StudentsPage = () => {
@@ -13,8 +15,13 @@ export const StudentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClass, setFilterClass] = useState('');
+  
+  // Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -31,6 +38,11 @@ export const StudentsPage = () => {
   useEffect(() => {
     fetchStudents();
   }, []);
+
+  const handleEditClick = (student: Student) => {
+    setSelectedStudent(student);
+    setIsEditModalOpen(true);
+  };
 
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.nis.includes(searchTerm);
@@ -103,7 +115,7 @@ export const StudentsPage = () => {
                     <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Data tidak ditemukan.</td></tr>
                  ) : (
                     filteredStudents.map((student) => (
-                       <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                       <tr key={student.id} className="hover:bg-gray-50 transition-colors group">
                           <td className="px-6 py-3 font-medium text-gray-900 flex items-center gap-3">
                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xs">
                                 <User className="w-4 h-4" />
@@ -119,7 +131,12 @@ export const StudentsPage = () => {
                           <td className="px-6 py-3 text-gray-600">{student.gender}</td>
                           <td className="px-6 py-3 text-gray-500 truncate max-w-[200px]">{student.address || '-'}</td>
                           <td className="px-6 py-3 text-right">
-                             <button className="text-brand-600 hover:text-brand-800 text-xs font-bold hover:underline">Edit</button>
+                             <button 
+                                onClick={() => handleEditClick(student)}
+                                className="text-gray-400 hover:text-brand-600 p-1.5 hover:bg-brand-50 rounded transition-colors"
+                             >
+                                <Pencil className="w-4 h-4" />
+                             </button>
                           </td>
                        </tr>
                     ))
@@ -130,6 +147,7 @@ export const StudentsPage = () => {
       </div>
 
       <AddStudentModal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); fetchStudents(); }} />
+      <EditStudentModal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); fetchStudents(); }} student={selectedStudent} />
       <BulkStudentImportModal isOpen={isImportModalOpen} onClose={() => { setIsImportModalOpen(false); fetchStudents(); }} />
     </div>
   );

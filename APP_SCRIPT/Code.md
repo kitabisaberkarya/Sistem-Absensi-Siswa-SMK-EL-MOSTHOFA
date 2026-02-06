@@ -59,6 +59,12 @@ function handleRequest(e) {
       case 'createStudent':
         result = createStudent(payload);
         break;
+      case 'updateStudent': // NEW
+        result = updateStudent(payload);
+        break;
+      case 'deleteStudent': // NEW
+        result = deleteStudent(payload);
+        break;
       case 'importStudents':
         result = importStudents(payload.students);
         break;

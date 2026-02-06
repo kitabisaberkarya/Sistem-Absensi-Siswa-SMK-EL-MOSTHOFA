@@ -164,6 +164,21 @@ export interface DashboardStats {
   activeUsers: number;
 }
 
+// --- Report Types ---
+export interface SemesterRecapEntry {
+  studentId: string;
+  name: string;
+  nis: string;
+  className: string;
+  gender: 'L' | 'P';
+  sick: number;
+  permission: number;
+  alpha: number;
+  present: number;
+  totalMeetings: number;
+  percentage: number;
+}
+
 // --- User Management Types ---
 
 export interface CreateTeacherPayload {
@@ -189,4 +204,8 @@ export interface CreateStudentPayload {
   gender: 'L' | 'P';
   parentPhone: string;
   address: string;
+}
+
+export interface UpdateStudentPayload extends CreateStudentPayload {
+  id: string;
 }
