@@ -7,22 +7,38 @@
  * Copy paste isi file ini ke file "DataGuru.gs" di Google Apps Script Editor.
  */
 
-function handleLogin(email, password) {
+function handleLogin(identifier, password) {
   const users = getData(SHEETS.USERS);
-  const user = users.find(u => u.email === email);
   
-  if (!user) throw new Error('Email tidak ditemukan.');
+  // Enterprise Standard: Allow login via Email OR NIP (Identifier)
+  // Pencarian Case-Insensitive dan Trimmed untuk robustness
+  const cleanId = String(identifier).trim().toLowerCase();
+  
+  const user = users.find(u => {
+    const uEmail = String(u.email || '').trim().toLowerCase();
+    const uNip = String(u.nip || '').trim().toLowerCase();
+    return uEmail === cleanId || uNip === cleanId;
+  });
+  
+  if (!user) throw new Error('ID Pengguna atau NIP tidak ditemukan.');
   
   // Catatan: Gunakan hashing untuk production level
+  // Di sini kita bandingkan string langsung (sesuai setup saat ini)
   if (String(user.password) !== String(password)) {
-    throw new Error('Password salah. Silakan coba lagi.');
+    throw new Error('Kata sandi salah. Silakan coba lagi.');
+  }
+  
+  // PENTING: Kembalikan status aktif/tidak
+  if (user.status === 'Inactive') {
+    throw new Error('Akun ini telah dinonaktifkan. Hubungi Administrator.');
   }
   
   return {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: user.role,
+    role: user.role, // Role ini akan divalidasi di Frontend terhadap pilihan User
+    nip: user.nip,
     avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`
   };
 }
@@ -51,6 +67,11 @@ function createTeacher(payload) {
   if (users.find(u => u.email === payload.email)) {
     throw new Error("Email sudah terdaftar.");
   }
+  
+  // Validasi NIP Unik jika diisi
+  if (payload.nip && payload.nip !== '-' && users.find(u => u.nip === payload.nip)) {
+    throw new Error("NIP sudah digunakan oleh pengguna lain.");
+  }
 
   const newId = 'T_' + Math.floor(Math.random() * 10000);
   
@@ -61,7 +82,7 @@ function createTeacher(payload) {
     payload.email,
     payload.password || '123456',
     payload.role, 
-    payload.nip,
+    payload.nip || '-', // Default dash if empty
     payload.phone,
     payload.subject,
     payload.gender,
@@ -93,7 +114,6 @@ function updateTeacher(payload) {
   if (rowIndex === -1) throw new Error("User ID not found.");
 
   // Column Mapping based on SHEET_HEADERS in Pengaturan.gs
-  // ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar']
   const headers = data[0];
   
   const setCell = (colName, value) => {
@@ -124,14 +144,10 @@ function updateTeacher(payload) {
  */
 function importTeachers(teachers) {
   const lock = LockService.getScriptLock();
-  // Wait for up to 10 seconds for other processes to finish.
   lock.tryLock(10000);
 
   try {
     const sheet = getSheetOrSetup(SHEETS.USERS);
-    
-    // Ambil data yang sudah ada untuk cek duplikasi (berdasarkan email)
-    // Kolom: id(0), name(1), email(2)
     const data = sheet.getDataRange().getValues();
     const existingEmails = new Set();
     
@@ -148,17 +164,15 @@ function importTeachers(teachers) {
       const rawCode = t.code ? String(t.code) : '';
       const cleanCode = rawCode.toLowerCase().replace(/[^a-z0-9]/g, '');
       
-      // Jika kode kosong, skip
       if (!cleanCode) return;
 
       const email = `guru.${cleanCode}@sekolah.sch.id`;
       
-      // 2. Cek apakah email sudah ada di database atau di batch import ini
+      // 2. Cek apakah email sudah ada
       if (!existingEmails.has(email)) {
         const newId = 'T_' + cleanCode.toUpperCase() + '_' + Math.floor(Math.random() * 9999);
         
-        // 3. Susun Baris (Wajib urut sesuai Header di Pengaturan.gs)
-        // ['id', 'name', 'email', 'password', 'role', 'nip', 'phone', 'subject', 'gender', 'status', 'avatar']
+        // 3. Susun Baris
         newRows.push([
           newId,                    // id
           String(t.name || 'Guru'), // name
@@ -173,13 +187,12 @@ function importTeachers(teachers) {
           ''                        // avatar
         ]);
         
-        existingEmails.add(email); // Tandai email ini agar tidak duplikat di loop berikutnya
+        existingEmails.add(email); 
         count++;
       }
     });
 
     if (newRows.length > 0) {
-      // Tulis ke Sheet sekaligus (Batch Write) agar cepat
       sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
     }
 

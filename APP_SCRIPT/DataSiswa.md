@@ -6,7 +6,18 @@
 
 function getStudentsByClass(className) {
   const students = getData(SHEETS.STUDENTS);
-  return students.filter(s => s.className === className);
+  
+  // ROBUST SEARCH LOGIC:
+  // 1. Bersihkan search term (hapus spasi depan/belakang, lowercase)
+  const searchTarget = String(className).trim().toLowerCase();
+  
+  return students.filter(s => {
+    // 2. Bersihkan data di database juga saat membandingkan
+    const studentClass = String(s.className || '').trim().toLowerCase();
+    
+    // 3. Bandingkan
+    return studentClass === searchTarget;
+  });
 }
 
 function getAllStudents() {

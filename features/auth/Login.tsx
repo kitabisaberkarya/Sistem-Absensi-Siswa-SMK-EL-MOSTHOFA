@@ -1,15 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ApiService } from '../../services/api';
-import { Button } from '../../components/Button';
-import { School, Lock, Mail, ArrowRight, ShieldCheck, CheckCircle2, Sparkles } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
+import { Role } from '../../types';
+import clsx from 'clsx';
+// @ts-ignore
+import Lottie from 'lottie-react';
 
 export const Login = () => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
+  
+  // State
+  const [selectedRole, setSelectedRole] = useState<Role>(Role.TEACHER);
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [animationData, setAnimationData] = useState<any>(null);
+
+  // Fetch Animation
+  useEffect(() => {
+    fetch('/Online Learning.json')
+      .then(res => res.json())
+      .then(data => setAnimationData(data))
+      .catch(err => console.error("Animation load failed", err));
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,158 +33,226 @@ export const Login = () => {
     setError('');
 
     try {
-      if (!email || !password) throw new Error("Email dan password wajib diisi");
-      // Pass both email and password to the API
-      const user = await ApiService.login(email, password);
+      if (!identifier || !password) throw new Error("ID Pengguna dan kata sandi wajib diisi");
+      
+      // 1. Call API
+      const user = await ApiService.login(identifier, password);
+      
+      // 2. Role Validation
+      if (user.role !== Role.ADMIN && user.role !== selectedRole) {
+         throw new Error(`Akun ini tidak terdaftar sebagai ${getRoleLabel(selectedRole)}. Silakan ganti peran.`);
+      }
+
+      // 3. Success
       login(user);
     } catch (err: any) {
-      setError(err.message || 'Login gagal. Periksa email atau password Anda.');
+      setError(err.message || 'Login gagal. Periksa kredensial anda.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getRoleLabel = (r: Role) => {
+    switch(r) {
+        case Role.TEACHER: return 'Guru Mapel';
+        case Role.COUNSELOR: return 'Guru BK';
+        case Role.PRINCIPAL: return 'Kepala Sekolah';
+        default: return 'User';
+    }
+  };
+
   return (
-    <div className="min-h-screen flex bg-gray-50 font-sans overflow-hidden">
+    <div className="min-h-screen w-full flex font-sans overflow-hidden bg-[#FFF8F3]">
       
-      {/* LEFT SIDE - Branding (Static & Professional) */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-brand-900 via-brand-700 to-brand-600 relative overflow-hidden flex-col justify-between p-12 text-white">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-           <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-             <path d="M0 100 C 20 0 50 0 100 100 Z" fill="white" />
-           </svg>
-        </div>
+      {/* LEFT COLUMN - WARM ORANGE ENTERPRISE THEME */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 relative z-10 bg-white/60 backdrop-blur-sm border-r border-orange-100">
         
-        {/* Content */}
-        <div className="relative z-10 animate-in fade-in slide-in-from-left-8 duration-700 mt-10">
-          <div className="inline-flex items-center gap-3 mb-8 bg-white/10 px-4 py-2 rounded-full border border-white/20 backdrop-blur-md">
-            <School className="w-5 h-5 text-brand-200" />
-            <span className="text-sm font-semibold tracking-wide text-brand-100 uppercase">Sistem Informasi Sekolah</span>
-          </div>
-          
-          <img 
-            src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
-            alt="Logo SMK" 
-            className="w-32 h-32 mb-6 drop-shadow-2xl"
-          />
+        {/* Warm Background Ambience (Left Side Only) */}
+        <div className="absolute top-[-5%] left-[-5%] w-96 h-96 bg-orange-400/20 rounded-full blur-[100px] animate-pulse pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-yellow-400/10 rounded-full blur-[80px] pointer-events-none"></div>
+        <div className="absolute top-[40%] left-[20%] w-32 h-32 bg-amber-300/20 rounded-full blur-[50px] pointer-events-none"></div>
 
-          <h1 className="text-5xl font-bold leading-tight mb-6">
-            SMK EL MOSTHOFA <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-brand-100">
-              Pamekasan Madura
-            </span>
-          </h1>
-          <p className="text-lg text-brand-100 max-w-md leading-relaxed opacity-90">
-            Platform digital terintegrasi untuk manajemen absensi, monitoring kedisiplinan, dan evaluasi akademik menuju standar pendidikan 2026.
-          </p>
-        </div>
-
-        <div className="relative z-10 grid grid-cols-2 gap-6 text-sm font-medium text-brand-200 mt-auto">
-           <div className="flex items-center gap-3 bg-brand-800/30 p-3 rounded-lg border border-brand-500/30">
-             <CheckCircle2 className="w-5 h-5 text-yellow-400" />
-             <span>Real-time Monitoring</span>
+        <div className="max-w-md w-full mx-auto relative z-20">
+           {/* Mobile Logo (Visible only on small screens) */}
+           <div className="lg:hidden mb-8 flex items-center gap-3">
+              <img 
+                 src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+                 alt="Logo" 
+                 className="w-10 h-10 object-contain"
+              />
+              <span className="font-bold text-gray-800 tracking-tight">SMK EL MOSTHOFA</span>
            </div>
-           <div className="flex items-center gap-3 bg-brand-800/30 p-3 rounded-lg border border-brand-500/30">
-             <ShieldCheck className="w-5 h-5 text-yellow-400" />
-             <span>Secure Data Access</span>
+
+           <div className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                 <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold border border-orange-200 uppercase tracking-wide flex items-center gap-1.5 shadow-sm">
+                    <Building2 className="w-3.5 h-3.5" /> Sistem Manajemen Sekolah
+                 </span>
+              </div>
+              <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 mb-3 tracking-tight font-serif leading-tight">
+                 Dashboard <br/>
+                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-amber-500">Login Area</span>
+              </h1>
+              <p className="text-gray-500 text-lg">
+                 Selamat datang! Silakan masuk untuk mengakses panel akademik.
+              </p>
+           </div>
+
+           {/* Role Switcher (Orange Accent) */}
+           <div className="mb-8 p-1.5 bg-orange-50 rounded-2xl flex relative shadow-inner border border-orange-100/50">
+              {[Role.TEACHER, Role.COUNSELOR, Role.PRINCIPAL].map((role) => (
+                 <button
+                    key={role}
+                    type="button"
+                    onClick={() => setSelectedRole(role)}
+                    className={clsx(
+                       "flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all duration-300 relative z-10 flex items-center justify-center gap-2",
+                       selectedRole === role 
+                          ? "bg-white text-orange-700 shadow-md ring-1 ring-orange-100 scale-[1.02]" 
+                          : "text-gray-500 hover:text-orange-600 hover:bg-orange-100/50"
+                    )}
+                 >
+                    {role === Role.PRINCIPAL && <ShieldCheck className={clsx("w-4 h-4", selectedRole === role ? "text-orange-500" : "text-gray-400")} />}
+                    {getRoleLabel(role)}
+                 </button>
+              ))}
+           </div>
+
+           <form onSubmit={handleLogin} className="space-y-6">
+              
+              {/* Username Input */}
+              <div className="space-y-2">
+                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wider ml-1">
+                    NIP / ID Pengguna
+                 </label>
+                 <div className="relative group">
+                    <div className="absolute left-4 top-3.5 w-10 h-10 flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+                    </div>
+                    <input 
+                       type="text"
+                       required
+                       value={identifier}
+                       onChange={(e) => setIdentifier(e.target.value)}
+                       placeholder={selectedRole === Role.TEACHER ? "Masukkan NIP Guru" : "Masukkan ID Pengguna"}
+                       className="w-full bg-white text-gray-900 placeholder-gray-400 pl-12 pr-4 py-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-medium shadow-sm"
+                    />
+                 </div>
+              </div>
+
+              {/* Password Input */}
+              <div className="space-y-2">
+                 <div className="flex justify-between items-center ml-1">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        Kata Sandi
+                    </label>
+                    <a href="#" className="text-xs font-semibold text-orange-600 hover:text-orange-700 hover:underline">
+                       Lupa kata sandi?
+                    </a>
+                 </div>
+                 <div className="relative group">
+                    <div className="absolute left-4 top-3.5 w-10 h-10 flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+                    </div>
+                    <input 
+                       type={showPassword ? "text" : "password"}
+                       required
+                       value={password}
+                       onChange={(e) => setPassword(e.target.value)}
+                       placeholder="Masukkan kata sandi anda"
+                       className="w-full bg-white text-gray-900 placeholder-gray-400 pl-12 pr-12 py-4 rounded-xl border border-gray-200 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all font-medium shadow-sm"
+                    />
+                    <button 
+                       type="button"
+                       onClick={() => setShowPassword(!showPassword)}
+                       className="absolute right-4 top-4 text-gray-400 hover:text-orange-600 focus:outline-none transition-colors"
+                    >
+                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                 </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                 <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-medium flex items-center gap-3 animate-in slide-in-from-top-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    {error}
+                 </div>
+              )}
+
+              {/* Submit Button (Gradient Orange) */}
+              <button
+                 type="submit"
+                 disabled={isLoading}
+                 className="w-full bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-orange-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed mt-4 border border-transparent"
+              >
+                 {isLoading ? (
+                    <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Memproses...</span>
+                    </div>
+                 ) : (
+                    <>
+                       Masuk Sekarang <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </>
+                 )}
+              </button>
+           </form>
+
+           <div className="mt-10 text-center border-t border-orange-100 pt-6">
+              <p className="text-sm text-gray-400">
+                 &copy; {new Date().getFullYear()} SMK El Mosthofa. <br className="sm:hidden"/> 
+                 <span className="text-orange-600 font-medium ml-1">Secure Enterprise System.</span>
+              </p>
            </div>
         </div>
       </div>
 
-      {/* RIGHT SIDE - Login Form (Modern & Warm) */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
-        
-        {/* Ambient Warm Background Elements (The Orange/Yellow Variation) */}
-        <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-amber-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-pulse"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-orange-100/60 rounded-full mix-blend-multiply filter blur-3xl opacity-70"></div>
-        <div className="absolute top-[20%] left-[10%] w-32 h-32 bg-yellow-300/20 rounded-full mix-blend-multiply filter blur-2xl opacity-60"></div>
+      {/* RIGHT COLUMN - BRAND HERO WITH LOTTIE ANIMATION */}
+      <div className="hidden lg:flex w-1/2 bg-brand-600 relative overflow-hidden items-center justify-center flex-col text-white">
+         
+         {/* Abstract Patterns */}
+         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-bl-full pointer-events-none"></div>
+         <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-tr-full pointer-events-none"></div>
+         
+         {/* Content Container */}
+         <div className="relative z-10 text-center p-8 max-w-xl w-full flex flex-col items-center justify-center h-full">
+             
+             {/* PROMINENT LOGO & SCHOOL NAME */}
+             <div className="mb-8 flex flex-col items-center gap-4 animate-in slide-in-from-top-4 duration-700">
+                <img 
+                   src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+                   alt="Logo Sekolah" 
+                   className="w-28 h-28 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                />
+                <div className="flex flex-col items-center">
+                    <h1 className="text-3xl font-extrabold tracking-tight drop-shadow-lg font-serif">
+                       SMK EL MOSTHOFA
+                    </h1>
+                    <p className="text-brand-100 text-sm font-medium tracking-widest uppercase opacity-80 mt-1">
+                        Pamekasan - Madura
+                    </p>
+                </div>
+             </div>
 
-        <div className="max-w-md w-full space-y-8 relative z-10 animate-in fade-in zoom-in-95 duration-500">
-          
-          {/* Mobile Header */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-24 h-24 mx-auto mb-4 flex items-center justify-center relative">
-               <div className="absolute inset-0 bg-blue-100 rounded-full animate-pulse opacity-50"></div>
-               <img 
-                 src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
-                 alt="Logo SMK" 
-                 className="w-20 h-20 object-contain relative z-10"
-               />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">SMK EL MOSTHOFA</h2>
-            <p className="text-sm text-gray-500">Pamekasan Madura</p>
-          </div>
-
-          {/* Glassmorphic Card */}
-          <div className="bg-white/80 backdrop-blur-xl p-8 sm:p-10 rounded-3xl shadow-2xl border-t-4 border-t-amber-500 border-x border-b border-white/60">
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-amber-500" />
-                <span className="text-xs font-bold text-amber-600 tracking-wider uppercase">Secure Login</span>
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Selamat Datang</h2>
-              <p className="text-sm text-gray-500 mt-2">Masuk untuk mengakses dashboard akademik.</p>
-            </div>
-
-            <form className="space-y-6" onSubmit={handleLogin}>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">Email Sekolah</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors">
-                      <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-brand-600" />
-                    </div>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full pl-11 pr-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all sm:text-sm shadow-sm"
-                      placeholder="nama@sekolah.sch.id"
+             {/* MAIN ANIMATION (LOTTIE) */}
+             <div className="w-full max-w-[450px] mb-8 relative">
+                {animationData && (
+                    <Lottie 
+                        animationData={animationData} 
+                        loop={true} 
+                        className="w-full h-auto drop-shadow-xl"
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">Password</label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-brand-600" />
-                    </div>
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full pl-11 pr-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-all sm:text-sm shadow-sm"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {error && (
-                <div className="rounded-xl bg-red-50 p-4 border border-red-100 flex items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-red-600 mt-0.5" />
-                  <p className="text-sm font-medium text-red-800">{error}</p>
-                </div>
-              )}
-
-              <Button 
-                type="submit" 
-                fullWidth 
-                isLoading={isLoading}
-                className="py-4 rounded-xl text-base font-bold shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 transition-all active:scale-[0.98] bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-500 hover:to-brand-600"
-              >
-                Masuk ke Sistem <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </form>
-          </div>
-          
-          <p className="text-center text-xs text-gray-400/80 font-medium">
-            &copy; {new Date().getFullYear()} SMK EL MOSTHOFA. Integrated System.
-          </p>
-        </div>
+                )}
+             </div>
+             
+             <h2 className="text-2xl font-bold mb-3 leading-tight drop-shadow-md">
+                Sistem Informasi Akademik <br/> & Absensi Digital
+             </h2>
+             <p className="text-brand-100 text-base leading-relaxed max-w-md mx-auto">
+                Platform terintegrasi untuk efisiensi pengelolaan data siswa, pemantauan kehadiran, dan pelaporan akademik.
+             </p>
+         </div>
       </div>
     </div>
   );

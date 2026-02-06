@@ -480,7 +480,7 @@ export const AttendancePage = () => {
 
       {/* 3. STATE: EMPTY (Selected, Not Loading, but No Students) */}
       {!loading && hasSearched && students.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-2xl border border-red-200 shadow-sm">
+        <div className="text-center py-16 bg-white rounded-2xl border border-red-200 shadow-sm animate-in fade-in zoom-in-95">
           <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
              <AlertTriangle className="w-10 h-10 text-red-500" />
           </div>
@@ -488,10 +488,17 @@ export const AttendancePage = () => {
           <p className="text-gray-500 max-w-md mx-auto mt-2">
             Kelas <strong>"{selectedClass}"</strong> belum memiliki data siswa yang terdaftar di database.
           </p>
-          <div className="mt-6 flex justify-center gap-3">
-             <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                Tips: Pastikan nama kelas sesuai dengan Data Master Siswa
-             </span>
+          <div className="mt-6 flex flex-col items-center gap-3">
+             <div className="text-sm bg-gray-100 p-4 rounded-xl border border-gray-200 max-w-lg text-left">
+                <p className="font-semibold text-gray-700 mb-2">Diagnosa Masalah:</p>
+                <ul className="list-disc ml-4 text-gray-600 space-y-1">
+                    <li>Nama kelas di dropdown ("{selectedClass}") berbeda dengan nama kelas di file Excel/Database (misal: "Kelas XII TBS").</li>
+                    <li>Sistem membutuhkan penulisan yang <strong>persis sama</strong>.</li>
+                </ul>
+             </div>
+             <p className="text-xs text-brand-600 mt-2">
+                Solusi: Edit data siswa di menu <strong>Data Siswa</strong> agar sesuai dengan nama kelas ini.
+             </p>
           </div>
         </div>
       )}
