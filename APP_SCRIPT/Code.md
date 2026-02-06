@@ -1,7 +1,4 @@
 
-
-
-
 /**
  * MODULE: API GATEWAY (Main Controller)
  * Menangani request HTTP dari React Frontend
@@ -44,7 +41,7 @@ function handleRequest(e) {
       case 'createTeacher':
         result = createTeacher(payload);
         break;
-      case 'updateTeacher': // NEW
+      case 'updateTeacher':
         result = updateTeacher(payload);
         break;
       case 'importTeachers':
@@ -61,11 +58,11 @@ function handleRequest(e) {
       case 'createStudent':
         result = createStudent(payload);
         break;
-      case 'updateStudent': // NEW
+      case 'updateStudent':
         result = updateStudent(payload);
         break;
-      case 'deleteStudent': // NEW
-        result = deleteStudent(payload);
+      case 'deleteStudent':
+        result = deleteStudent(payload.id);
         break;
       case 'importStudents':
         result = importStudents(payload.students);
@@ -91,7 +88,7 @@ function handleRequest(e) {
         result = deleteSubject(payload.id);
         break;
       
-      // Kelas (NEW)
+      // Kelas
       case 'fetchClasses':
         result = getAllClasses();
         break;
@@ -109,14 +106,19 @@ function handleRequest(e) {
       case 'fetchSemesterRecap':
         result = fetchSemesterRecap(payload);
         break;
-      case 'fetchTeacherHistory': // NEW ROUTE
+      case 'fetchTeacherHistory':
         result = getTeacherHistory(payload.teacherId);
         break;
-      case 'fetchStudentHistory': // NEW ROUTE FOR BK
+      case 'fetchStudentHistory': 
         result = getStudentAttendanceHistory(payload.studentId);
         break;
-      case 'fetchPrincipalReportData': // NEW ROUTE FOR PRINCIPAL
+      case 'fetchPrincipalReportData':
         result = fetchPrincipalReportData(payload);
+        break;
+        
+      // Konseling (Konseling.gs) -- NEW ROUTE --
+      case 'fetchCounselingData':
+        result = getCounselingReportData();
         break;
 
       // Statistik (Dashboard.gs)

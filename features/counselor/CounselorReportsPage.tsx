@@ -1,93 +1,60 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { ApiService } from '../../services/api';
+import { ApiService, CounselingData } from '../../services/api';
 import { ReportService } from '../../services/ReportService';
-import { Student, AttendanceStatus } from '../../types';
+import { Student } from '../../types';
 import { Button } from '../../components/Button';
-import { StudentViolationDetailModal } from '../../components/StudentViolationDetailModal'; // Import Modal Baru
+import { StudentViolationDetailModal } from '../../components/StudentViolationDetailModal';
 import { 
   FileText, 
-  Printer, 
   Search, 
-  Filter,
   UserX,
   AlertTriangle,
   Mail,
   Download,
-  Eye
+  Eye,
+  RefreshCcw,
+  CheckCircle2
 } from 'lucide-react';
 import clsx from 'clsx';
 
 type Tab = 'risk-monitor' | 'letters';
 
-// Interface for Violation Data
-interface ViolationData {
-  student: Student;
-  alpha: number;
-  sick: number;
-  permission: number;
-  total: number;
-  status: 'Aman' | 'Waspada' | 'Bahaya';
-}
-
 export const CounselorReportsPage = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('risk-monitor');
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<ViolationData[]>([]);
+  const [data, setData] = useState<CounselingData[]>([]); // Use the correct interface
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modal State
   const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedViolation, setSelectedViolation] = useState<ViolationData | null>(null);
+  const [selectedViolation, setSelectedViolation] = useState<CounselingData | null>(null);
   
   // Load data on mount
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Calls the new specific endpoint that aggregates ALL data correctly
+      const counselingData = await ApiService.fetchCounselingData();
+      
+      // Sort by Alpha descending (Problem cases first)
+      setData(counselingData.sort((a, b) => b.alpha - a.alpha));
+
+    } catch (e) {
+      console.error(e);
+      alert("Gagal mengambil data konseling.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // 1. Get All Students
-        const students = await ApiService.fetchAllStudents();
-        
-        // 2. Get Dashboard Stats (which contains risk data)
-        const stats = await ApiService.fetchDashboardStats();
-        
-        // 3. Map Risk Data to Students
-        // Note: Ideally we have a dedicated endpoint, but we can merge data here for now
-        const violations: ViolationData[] = students.map(s => {
-            const riskInfo = stats.atRiskStudents.find(r => r.name === s.name); // Matching by name is risky, ideally by ID
-            const alpha = riskInfo ? riskInfo.alphaCount : 0;
-            const sick = riskInfo ? riskInfo.sickCount : 0;
-            
-            // Determine Status based on Alpha
-            let status: 'Aman' | 'Waspada' | 'Bahaya' = 'Aman';
-            if (alpha >= 3 && alpha < 5) status = 'Waspada';
-            if (alpha >= 5) status = 'Bahaya';
-
-            return {
-                student: s,
-                alpha,
-                sick,
-                permission: 0, // Placeholder
-                total: alpha + sick,
-                status
-            };
-        });
-
-        // Sort by Alpha descending
-        setData(violations.sort((a, b) => b.alpha - a.alpha));
-
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
-  const handleGenerateLetter = (v: ViolationData, type: 'SP1' | 'SP2' | 'SP3') => {
+  const handleGenerateLetter = (v: CounselingData, type: 'SP1' | 'SP2' | 'SP3') => {
     ReportService.generateCounselingLetter({
         studentName: v.student.name,
         className: v.student.className,
@@ -98,7 +65,7 @@ export const CounselorReportsPage = () => {
     });
   };
 
-  const handleViewDetail = (violation: ViolationData) => {
+  const handleViewDetail = (violation: CounselingData) => {
     setSelectedViolation(violation);
     setIsDetailOpen(true);
   };
@@ -150,50 +117,60 @@ export const CounselorReportsPage = () => {
       </div>
 
       {/* SEARCH BAR */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
-         <Search className="w-5 h-5 text-gray-400" />
-         <input 
-            type="text" 
-            placeholder="Cari nama siswa atau kelas..." 
-            className="flex-1 outline-none text-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-         />
+      <div className="flex gap-4">
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4 flex-1">
+           <Search className="w-5 h-5 text-gray-400" />
+           <input 
+              type="text" 
+              placeholder="Cari nama siswa atau kelas..." 
+              className="flex-1 outline-none text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+           />
+        </div>
+        <Button variant="outline" onClick={fetchData} className="border-gray-200 bg-white text-gray-600 hover:bg-gray-50">
+            <RefreshCcw className={clsx("w-4 h-4", loading && "animate-spin")} />
+        </Button>
       </div>
 
       {/* CONTENT: RISK MONITOR */}
       {activeTab === 'risk-monitor' && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 text-gray-500 uppercase font-bold border-b border-gray-200">
                     <tr>
                         <th className="px-6 py-4">Siswa</th>
                         <th className="px-6 py-4">Kelas</th>
-                        <th className="px-6 py-4 text-center text-red-600">Alpha</th>
-                        <th className="px-6 py-4 text-center">Sakit/Izin</th>
+                        <th className="px-6 py-4 text-center text-red-600 bg-red-50">Alpha</th>
+                        <th className="px-6 py-4 text-center">Sakit</th>
+                        <th className="px-6 py-4 text-center">Izin</th>
                         <th className="px-6 py-4 text-center">Status</th>
                         <th className="px-6 py-4 text-right">Tindakan</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                     {loading ? (
-                        <tr><td colSpan={6} className="p-8 text-center text-gray-400">Memuat data...</td></tr>
+                        <tr><td colSpan={7} className="p-8 text-center text-gray-400">Memuat data terbaru...</td></tr>
                     ) : filteredData.length === 0 ? (
-                        <tr><td colSpan={6} className="p-8 text-center text-gray-400">Tidak ada data pelanggaran.</td></tr>
+                        <tr><td colSpan={7} className="p-8 text-center text-gray-400">Tidak ada data siswa ditemukan.</td></tr>
                     ) : (
                         filteredData.map((d) => (
                             <tr key={d.student.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 font-semibold text-gray-900">{d.student.name}</td>
                                 <td className="px-6 py-4 text-gray-600">{d.student.className}</td>
-                                <td className="px-6 py-4 text-center font-bold text-red-600">{d.alpha}</td>
-                                <td className="px-6 py-4 text-center text-gray-500">{d.sick + d.permission}</td>
+                                <td className="px-6 py-4 text-center font-bold text-red-600 bg-red-50/30">{d.alpha}</td>
+                                <td className="px-6 py-4 text-center text-yellow-600">{d.sick}</td>
+                                <td className="px-6 py-4 text-center text-blue-600">{d.permission}</td>
                                 <td className="px-6 py-4 text-center">
                                     <span className={clsx(
-                                        "px-2 py-1 rounded-full text-xs font-bold",
+                                        "px-2 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1",
                                         d.status === 'Bahaya' ? 'bg-red-100 text-red-700' :
                                         d.status === 'Waspada' ? 'bg-orange-100 text-orange-700' :
                                         'bg-green-100 text-green-700'
                                     )}>
+                                        {d.status === 'Bahaya' && <AlertTriangle className="w-3 h-3" />}
+                                        {d.status === 'Aman' && <CheckCircle2 className="w-3 h-3" />}
                                         {d.status}
                                     </span>
                                 </td>
@@ -212,6 +189,7 @@ export const CounselorReportsPage = () => {
                     )}
                 </tbody>
             </table>
+            </div>
         </div>
       )}
 
@@ -225,7 +203,7 @@ export const CounselorReportsPage = () => {
                             <h3 className="font-bold text-gray-900">{d.student.name}</h3>
                             <p className="text-sm text-gray-500">{d.student.className}</p>
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 font-bold">
+                        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 font-bold border border-red-100">
                             {d.alpha}
                         </div>
                     </div>
@@ -259,7 +237,7 @@ export const CounselorReportsPage = () => {
                         </button>
                         <button 
                             onClick={() => handleGenerateLetter(d, 'SP3')}
-                            disabled={d.alpha < 7}
+                            disabled={d.alpha < 5} // Adjusted logic
                             className="px-3 py-2 border border-red-200 bg-red-50 text-red-700 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex flex-col items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Download className="w-3 h-3" /> SP 3

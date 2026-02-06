@@ -1,8 +1,9 @@
+
 import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPayload, UpdateTeacherPayload, CreateStudentPayload, UpdateStudentPayload, ImportedTeacher, ImportedStudent, BackupData, BackupResponse, Major, Subject, ClassRoom, SemesterRecapEntry, TeacherHistoryLog, StudentHistoryLog } from '../types';
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwEisQGdthjM-6BFYSYk1kWXpH30byynnOJbkkfHXenqqfvug-AThjenoTPPYUC4d4y/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxE6XSXMbiY1SjLL906IT8pwwFK5ujHTaPfQj9IZMfHtuD4iKnXvA7RYSFLJw0Bh8J9bA/exec';
 
 // --- API HELPER ---
 const fetchScript = async (action: string, payload: any = {}) => {
@@ -45,6 +46,18 @@ export interface PrincipalReportData {
     percentage: number;
     predicate: string;
   }[];
+}
+
+// New Interface for Counseling Data
+export interface CounselingData {
+  student: Student;
+  alpha: number;
+  sick: number;
+  permission: number;
+  present: number;
+  total: number;
+  status: 'Aman' | 'Waspada' | 'Bahaya';
+  lastOffense: string | null;
 }
 
 export const ApiService = {
@@ -178,6 +191,12 @@ export const ApiService = {
   fetchPrincipalReportData: async (month: string, year: string): Promise<PrincipalReportData> => {
     const data = await fetchScript('fetchPrincipalReportData', { month, year });
     return data as PrincipalReportData;
+  },
+
+  // NEW: Fetch Counseling Specific Data (Full Scan)
+  fetchCounselingData: async (): Promise<CounselingData[]> => {
+    const data = await fetchScript('fetchCounselingData');
+    return (data || []) as CounselingData[];
   },
 
   // --- BACKUP & RESTORE SERVICES ---
