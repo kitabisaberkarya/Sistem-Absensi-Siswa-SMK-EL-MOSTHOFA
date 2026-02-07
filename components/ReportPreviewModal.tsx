@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, FileDown, FileSpreadsheet, Printer } from 'lucide-react';
 import { ReportMeta, ReportRow, ReportService } from '../services/ReportService';
@@ -62,26 +63,48 @@ export const ReportPreviewModal: React.FC<Props> = ({ isOpen, onClose, meta, dat
            {/* A4 Paper Simulation */}
            <div className="max-w-[210mm] mx-auto bg-white shadow-xl min-h-[297mm] p-[15mm] text-sm relative">
               
-              {/* Report Header */}
-              <div className="border-b-2 border-brand-600 pb-6 mb-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-tight">{meta.title}</h1>
-                    <h2 className="text-lg text-brand-600 font-medium">{meta.subtitle}</h2>
-                  </div>
-                  <div className="text-right text-xs text-gray-500">
-                    <p>SMK EL MOSTHOFA</p>
-                    <p>Generated: {new Date().toLocaleDateString()}</p>
-                  </div>
+              {/* KOP SURAT RESMI (Double Logo) */}
+              <div className="border-b-4 border-double border-gray-900 pb-4 mb-6 relative">
+                <div className="flex items-center justify-between px-2">
+                    {/* Logo Yayasan (Kiri) */}
+                    <img 
+                        src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770438319/logo_yayan_at_tohiri_gg8vkq.png" 
+                        alt="Logo Yayasan" 
+                        className="w-20 h-20 object-contain"
+                    />
+                    
+                    {/* Teks Tengah */}
+                    <div className="flex-1 text-center px-4">
+                        <h3 className="text-sm font-bold font-serif text-gray-800 tracking-wide">YAYASAN PENDIDIKAN ISLAM AT-TOHIRI</h3>
+                        <h1 className="text-xl font-bold font-serif text-gray-900 uppercase tracking-wider my-1">SMK EL MOSTHOFA</h1>
+                        <p className="text-[10px] text-gray-600 font-serif italic">Bidang Keahlian: Teknologi Informasi & Komunikasi, Bisnis & Manajemen</p>
+                        <p className="text-[10px] text-gray-600 font-serif">Jalan Raya Pamekasan - Sumenep KM. 15, Pamekasan, Jawa Timur</p>
+                        <p className="text-[9px] text-gray-500 mt-1">Telp: (0324) 123456 | Email: admin@elmosthofa.sch.id | Website: www.elmosthofa.sch.id</p>
+                    </div>
+
+                    {/* Logo Sekolah (Kanan) */}
+                    <img 
+                        src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+                        alt="Logo Sekolah" 
+                        className="w-20 h-20 object-contain"
+                    />
+                </div>
+              </div>
+
+              {/* Report Meta */}
+              <div className="mb-6">
+                <div className="text-center mb-6">
+                    <h2 className="text-lg font-bold uppercase underline text-gray-900">{meta.title}</h2>
+                    <p className="text-sm text-gray-600 font-medium">{meta.subtitle}</p>
                 </div>
                 
-                <div className="mt-6 grid grid-cols-2 gap-4 text-sm text-gray-600">
+                <div className="flex justify-between text-xs text-gray-600 border-b border-gray-100 pb-2">
                   <div>
-                    <span className="block font-semibold text-gray-400 text-xs uppercase">Tanggal Data</span>
+                    <span className="font-semibold block mb-1">Tanggal Data:</span>
                     {meta.date}
                   </div>
                   <div className="text-right">
-                    <span className="block font-semibold text-gray-400 text-xs uppercase">Validator</span>
+                    <span className="font-semibold block mb-1">Validator:</span>
                     {meta.teacher || 'Administrator'}
                   </div>
                 </div>

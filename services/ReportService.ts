@@ -1,7 +1,4 @@
 
-
-
-
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -10,6 +7,11 @@ import { PrincipalReportData } from './api';
 
 // Declare jsPDF with autoTable extension
 type jsPDFWithAutoTable = any;
+
+const ASSETS = {
+  YAYASAN_LOGO: 'https://res.cloudinary.com/dt1nrarpq/image/upload/v1770438319/logo_yayan_at_tohiri_gg8vkq.png',
+  SCHOOL_LOGO: 'https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png'
+};
 
 export interface ReportRow {
   no: number;
@@ -71,55 +73,95 @@ export const ReportService = {
     }
   },
 
+  // --- Helper: Draw Standard KOP Surat (Enterprise) ---
+  drawKopSurat: (doc: any) => {
+    const pageWidth = doc.internal.pageSize.width;
+    const centerX = pageWidth / 2;
+
+    // 1. Logos
+    // Note: In real production, ensure these URLs allow CORS or convert to Base64 beforehand.
+    try {
+        doc.addImage(ASSETS.YAYASAN_LOGO, 'PNG', 15, 10, 25, 25); // Left Logo (Yayasan)
+        doc.addImage(ASSETS.SCHOOL_LOGO, 'PNG', pageWidth - 40, 10, 25, 25); // Right Logo (School)
+    } catch (e) {
+        console.warn("Images could not be loaded in PDF", e);
+    }
+
+    // 2. Text Header
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("times", "bold");
+    
+    doc.setFontSize(14);
+    doc.text("YAYASAN PENDIDIKAN ISLAM AT-TOHIRI", centerX, 18, { align: "center" });
+    
+    doc.setFontSize(16);
+    doc.text("SMK EL MOSTHOFA", centerX, 25, { align: "center" });
+    
+    doc.setFontSize(10);
+    doc.setFont("times", "normal");
+    doc.text("Bidang Keahlian: Teknologi Informasi & Komunikasi, Bisnis & Manajemen", centerX, 30, { align: "center" });
+    doc.text("Jalan Raya Pamekasan - Sumenep KM. 15, Pamekasan, Jawa Timur", centerX, 35, { align: "center" });
+    doc.setFontSize(9);
+    doc.text("Telp: (0324) 123456 | Email: admin@elmosthofa.sch.id | Website: www.elmosthofa.sch.id", centerX, 40, { align: "center" });
+
+    // 3. Double Line Separator
+    doc.setLineWidth(0.5);
+    doc.line(10, 44, pageWidth - 10, 44);
+    doc.setLineWidth(0.2);
+    doc.line(10, 45, pageWidth - 10, 45); // Thin line below
+  },
+
   // --- PDF Generation (Generic Daily/Student) ---
   generatePDF: (meta: ReportMeta, data: ReportRow[]) => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
 
-    // Header Design
-    doc.setFillColor(37, 99, 235); // Brand Blue
-    doc.rect(0, 0, 210, 40, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text(meta.title, 14, 20);
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(meta.subtitle, 14, 30);
+    // Use New KOP
+    ReportService.drawKopSurat(doc);
 
-    // Meta Info Block
-    doc.setTextColor(50, 50, 50);
+    // Title Section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(meta.title.toUpperCase(), 105, 55, { align: "center" });
+    doc.setLineWidth(0.3);
+    // Underline title
+    const textWidth = doc.getTextWidth(meta.title.toUpperCase());
+    doc.line(105 - (textWidth/2), 56, 105 + (textWidth/2), 56);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.subtitle, 105, 62, { align: "center" });
+
+    // Meta Info Block (Left Aligned below header)
     doc.setFontSize(10);
-    doc.text(`Tanggal: ${meta.date}`, 14, 50);
-    if(meta.teacher) doc.text(`Guru/Staff: ${meta.teacher}`, 14, 55);
+    doc.text(`Tanggal Cetak : ${meta.date}`, 14, 72);
+    if(meta.teacher) doc.text(`Validator     : ${meta.teacher}`, 14, 77);
 
     // Table
-    const tableColumn = ["No", "NIS", "Nama Siswa", "Kelas", "Status Kehadiran", "Keterangan"];
+    const tableColumn = ["No", "NIS", "Nama Siswa", "Kelas", "Status", "Keterangan"];
     const tableRows = data.map(row => [row.no, row.nis, row.name, row.className, row.status, row.note]);
 
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 65,
+      startY: 82,
       theme: 'grid',
       styles: {
         fontSize: 10,
-        cellPadding: 4,
-        lineColor: [229, 231, 235], // gray-200
+        cellPadding: 3,
+        lineColor: [200, 200, 200],
         lineWidth: 0.1,
       },
       headStyles: {
         fillColor: [37, 99, 235], // brand-600
         textColor: [255, 255, 255],
         fontStyle: 'bold',
+        halign: 'center'
       },
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center' }, // No
+        0: { cellWidth: 10, halign: 'center' }, // No
         1: { cellWidth: 25 }, // NIS
-        4: { cellWidth: 35, fontStyle: 'bold' }, // Status
+        4: { cellWidth: 30, fontStyle: 'bold', halign: 'center' }, // Status
       },
-      // Styling logic to match Preview
       didParseCell: (data: any) => {
         if (data.section === 'body' && data.column.index === 4) {
           const status = data.cell.raw;
@@ -135,8 +177,9 @@ export const ReportService = {
     // Footer
     const finalY = doc.lastAutoTable.finalY + 20;
     doc.setFontSize(10);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Dicetak pada: ${new Date().toLocaleString()} oleh Sistem SMK EL MOSTHOFA`, 14, 285);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Dicetak pada: ${new Date().toLocaleString()}`, 14, 285);
+    doc.text("Sistem Informasi SMK El Mosthofa", 200, 285, { align: "right" });
 
     doc.save(`${meta.title.replace(/\s+/g, '_')}_${meta.date}.pdf`);
   },
@@ -179,24 +222,20 @@ export const ReportService = {
   generateSemesterPDF: (meta: ReportMeta, data: SemesterRecapEntry[]) => {
     const doc = new jsPDF() as jsPDFWithAutoTable;
 
-    // Header Design
-    doc.setFillColor(37, 99, 235); // Brand Blue
-    doc.rect(0, 0, 210, 40, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text(meta.title, 14, 20);
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(meta.subtitle, 14, 30);
+    // Use New KOP
+    ReportService.drawKopSurat(doc);
 
-    // Meta Info Block
-    doc.setTextColor(50, 50, 50);
+    // Title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(meta.title, 105, 55, { align: "center" });
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.subtitle, 105, 62, { align: "center" });
+
     doc.setFontSize(10);
-    doc.text(`Periode: ${meta.date}`, 14, 50);
-    doc.text(`Wali Kelas/Admin: ${meta.teacher || '-'}`, 14, 55);
+    doc.text(`Periode Laporan : ${meta.date}`, 14, 75);
 
     // Table
     const tableColumn = ["No", "NIS", "Nama Siswa", "Hadir", "Sakit", "Izin", "Alpha", "% Kehadiran"];
@@ -215,7 +254,7 @@ export const ReportService = {
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 65,
+      startY: 80,
       theme: 'striped',
       styles: {
         fontSize: 9,
@@ -251,14 +290,15 @@ export const ReportService = {
       }
     });
 
-    // Footer
+    // Footer Signature
     const finalY = doc.lastAutoTable.finalY + 15;
     
-    // Simple Signature Area
     if (finalY < 250) {
         doc.setFontSize(10);
         doc.setTextColor(0, 0, 0);
-        doc.text("Mengetahui,", 140, finalY);
+        const today = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+        
+        doc.text(`Pamekasan, ${today}`, 140, finalY);
         doc.text("Kepala Sekolah", 140, finalY + 5);
         doc.text("( ................................... )", 140, finalY + 25);
     }
@@ -300,24 +340,8 @@ export const ReportService = {
     const doc = new jsPDF();
     const margin = 20;
     
-    // 1. KOP SURAT (Simple Text Version)
-    doc.setFont("times", "bold");
-    doc.setFontSize(14);
-    doc.text("PEMERINTAH PROVINSI JAWA TIMUR", 105, 15, { align: "center" });
-    doc.setFontSize(16);
-    doc.text("DINAS PENDIDIKAN", 105, 22, { align: "center" });
-    doc.setFontSize(18);
-    doc.text("SMK EL MOSTHOFA", 105, 30, { align: "center" });
-    doc.setFontSize(10);
-    doc.setFont("times", "normal");
-    doc.text("Jalan Raya Pamekasan - Sumenep KM. 15, Pamekasan, Jawa Timur", 105, 36, { align: "center" });
-    doc.text("Telp: (0324) 123456 | Email: admin@elmosthofa.sch.id", 105, 41, { align: "center" });
-    
-    // Line Separator
-    doc.setLineWidth(0.5);
-    doc.line(margin, 45, 190, 45);
-    doc.setLineWidth(0.2);
-    doc.line(margin, 46, 190, 46);
+    // 1. KOP SURAT (Uses Helper)
+    ReportService.drawKopSurat(doc);
 
     // 2. HEADER SURAT
     let letterCode = "001";
@@ -329,63 +353,63 @@ export const ReportService = {
     
     // Tanggal
     const today = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
-    doc.text(`Pamekasan, ${today}`, 140, 55);
+    doc.text(`Pamekasan, ${today}`, 140, 60);
 
     // Detail
-    doc.text("Nomor", margin, 60); doc.text(`: 421/${letterCode}/BK/SMK-EM/${new Date().getFullYear()}`, 50, 60);
-    doc.text("Lampiran", margin, 66); doc.text(": -", 50, 66);
-    doc.text("Perihal", margin, 72); 
+    doc.text("Nomor", margin, 65); doc.text(`: 421/${letterCode}/BK/SMK-EM/${new Date().getFullYear()}`, 50, 65);
+    doc.text("Lampiran", margin, 71); doc.text(": -", 50, 71);
+    doc.text("Perihal", margin, 77); 
     doc.setFont("times", "bold");
-    doc.text(`: PANGGILAN ORANG TUA (${data.letterType})`, 50, 72);
+    doc.text(`: PANGGILAN ORANG TUA (${data.letterType})`, 50, 77);
     doc.setFont("times", "normal");
 
     // Penerima
-    doc.text("Yth. Bapak/Ibu Wali Murid", margin, 85);
-    doc.text(`dari Siswa: ${data.studentName}`, margin, 91);
-    doc.text("di Tempat", margin, 97);
+    doc.text("Yth. Bapak/Ibu Wali Murid", margin, 90);
+    doc.text(`dari Siswa: ${data.studentName}`, margin, 96);
+    doc.text("di Tempat", margin, 102);
 
     // 3. ISI SURAT
-    doc.text("Dengan hormat,", margin, 110);
+    doc.text("Dengan hormat,", margin, 115);
     
     const paragraph1 = `Sehubungan dengan ketidakhadiran dan pelanggaran tata tertib sekolah yang telah dilakukan oleh putra/putri Bapak/Ibu:`;
     const splitText1 = doc.splitTextToSize(paragraph1, 170);
-    doc.text(splitText1, margin, 116);
+    doc.text(splitText1, margin, 121);
 
     // Student Details
-    doc.text("Nama", 30, 130); doc.text(`: ${data.studentName}`, 60, 130);
-    doc.text("Kelas", 30, 136); doc.text(`: ${data.className}`, 60, 136);
-    doc.text("NIS", 30, 142); doc.text(`: ${data.nis}`, 60, 142);
-    doc.text("Pelanggaran", 30, 148); doc.text(`: Ketidakhadiran (Alpha) sebanyak ${data.violationCount} kali`, 60, 148);
+    doc.text("Nama", 30, 135); doc.text(`: ${data.studentName}`, 60, 135);
+    doc.text("Kelas", 30, 141); doc.text(`: ${data.className}`, 60, 141);
+    doc.text("NIS", 30, 147); doc.text(`: ${data.nis}`, 60, 147);
+    doc.text("Pelanggaran", 30, 153); doc.text(`: Ketidakhadiran (Alpha) sebanyak ${data.violationCount} kali`, 60, 153);
 
     const paragraph2 = `Maka dengan ini kami mengharap kehadiran Bapak/Ibu Wali Murid di sekolah untuk berkonsultasi dengan Guru Bimbingan Konseling (BK) pada:`;
     const splitText2 = doc.splitTextToSize(paragraph2, 170);
-    doc.text(splitText2, margin, 160);
+    doc.text(splitText2, margin, 165);
 
     // Schedule
-    doc.text("Hari / Tanggal", 30, 172); doc.text(`: Senin, ${today}`, 65, 172); // Default to "Next Monday" logic or Today for prototype
-    doc.text("Waktu", 30, 178); doc.text(": 08.00 WIB - Selesai", 65, 178);
-    doc.text("Tempat", 30, 184); doc.text(": Ruang BK SMK El Mosthofa", 65, 184);
-    doc.text("Keperluan", 30, 190); doc.text(": Pembinaan dan Konsultasi Belajar", 65, 190);
+    doc.text("Hari / Tanggal", 30, 177); doc.text(`: Senin, ${today}`, 65, 177); // Default to "Next Monday" logic or Today for prototype
+    doc.text("Waktu", 30, 183); doc.text(": 08.00 WIB - Selesai", 65, 183);
+    doc.text("Tempat", 30, 189); doc.text(": Ruang BK SMK El Mosthofa", 65, 189);
+    doc.text("Keperluan", 30, 195); doc.text(": Pembinaan dan Konsultasi Belajar", 65, 195);
 
     const paragraph3 = "Mengingat pentingnya hal tersebut demi kelancaran belajar putra/putri Bapak/Ibu, kami sangat mengharapkan kehadirannya tepat waktu. Atas perhatian dan kerjasamanya kami sampaikan terima kasih.";
     const splitText3 = doc.splitTextToSize(paragraph3, 170);
-    doc.text(splitText3, margin, 205);
+    doc.text(splitText3, margin, 210);
 
     // 4. SIGNATURE
-    doc.text("Mengetahui,", margin, 230);
-    doc.text("Kepala Sekolah", margin, 236);
+    doc.text("Mengetahui,", margin, 235);
+    doc.text("Kepala Sekolah", margin, 241);
     
-    doc.text("Guru Bimbingan Konseling", 130, 236);
+    doc.text("Guru Bimbingan Konseling", 130, 241);
 
     // Space for signature
     doc.setFont("times", "bold");
-    doc.text("( ................................... )", margin, 265);
-    doc.text("( ................................... )", 130, 265);
+    doc.text("( H. BUDI SANTOSO, S.Pd )", margin, 270);
+    doc.text("( ................................... )", 130, 270);
     
     doc.setFont("times", "normal");
     doc.setFontSize(9);
-    doc.text("NIP.", margin, 270);
-    doc.text("NIP.", 130, 270);
+    doc.text("NIP. 19850101 201001 1 001", margin, 275);
+    doc.text("NIP.", 130, 275);
 
     doc.save(`Surat_Panggilan_${data.letterType}_${data.studentName.replace(/\s+/g, '_')}.pdf`);
   },
@@ -396,25 +420,7 @@ export const ReportService = {
     const margin = 15;
 
     // 1. KOP SURAT RESMI (DINAS)
-    // Logo Placeholder (Left)
-    // doc.addImage(...) 
-    
-    doc.setFont("times", "bold");
-    doc.setFontSize(14);
-    doc.text("PEMERINTAH PROVINSI JAWA TIMUR", 105, 15, { align: "center" });
-    doc.setFontSize(16);
-    doc.text("DINAS PENDIDIKAN", 105, 22, { align: "center" });
-    doc.setFontSize(18);
-    doc.text("SMK EL MOSTHOFA", 105, 30, { align: "center" });
-    doc.setFontSize(10);
-    doc.setFont("times", "normal");
-    doc.text("NPSN: 12345678 | Akreditasi: A", 105, 36, { align: "center" });
-    doc.text("Jl. Raya Pamekasan - Sumenep KM. 15, Pamekasan", 105, 41, { align: "center" });
-    
-    doc.setLineWidth(0.8);
-    doc.line(margin, 46, 195, 46);
-    doc.setLineWidth(0.3);
-    doc.line(margin, 47, 195, 47);
+    ReportService.drawKopSurat(doc);
 
     // 2. HEADER LAPORAN
     doc.setFontSize(14);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
@@ -330,13 +331,31 @@ export const ReportsPage = () => {
          <div className="flex-1 p-8 overflow-auto bg-gray-100">
             <div className="max-w-[210mm] mx-auto bg-white shadow-sm border border-gray-200 min-h-[297mm] p-[10mm] md:p-[15mm] relative text-sm">
                 
-                {/* KOP SURAT */}
-                <div className="border-b-2 border-gray-900 pb-4 mb-6 flex gap-4 items-center justify-center text-center">
-                    <img src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" alt="Logo" className="w-20 h-20 object-contain" />
-                    <div>
-                        <h1 className="text-lg font-bold uppercase tracking-widest text-gray-900">SMK EL MOSTHOFA</h1>
-                        <p className="text-xs font-serif text-gray-600">Jalan Raya Pamekasan - Sumenep KM. 15, Madura, Jawa Timur</p>
-                        <p className="text-xs font-serif text-gray-600">Email: admin@elmosthofa.sch.id | Telp: (0324) 123456</p>
+                {/* KOP SURAT RESMI (Updated Layout) */}
+                <div className="border-b-4 border-double border-gray-900 pb-4 mb-6 relative">
+                    <div className="flex items-center justify-between px-2">
+                        {/* Logo Yayasan (Kiri) */}
+                        <img 
+                            src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770438319/logo_yayan_at_tohiri_gg8vkq.png" 
+                            alt="Logo Yayasan" 
+                            className="w-16 h-16 md:w-20 md:h-20 object-contain"
+                        />
+                        
+                        {/* Teks Tengah */}
+                        <div className="flex-1 text-center px-4">
+                            <h3 className="text-sm font-bold font-serif text-gray-800 tracking-wide">YAYASAN PENDIDIKAN ISLAM AT-TOHIRI</h3>
+                            <h1 className="text-lg md:text-xl font-bold font-serif text-gray-900 uppercase tracking-wider my-1">SMK EL MOSTHOFA</h1>
+                            <p className="text-[10px] md:text-xs text-gray-600 font-serif italic">Bidang Keahlian: Teknologi Informasi & Komunikasi, Bisnis & Manajemen</p>
+                            <p className="text-[10px] md:text-xs text-gray-600 font-serif">Jalan Raya Pamekasan - Sumenep KM. 15, Pamekasan, Jawa Timur</p>
+                            <p className="text-[9px] md:text-[10px] text-gray-500 mt-1">Telp: (0324) 123456 | Email: admin@elmosthofa.sch.id</p>
+                        </div>
+
+                        {/* Logo Sekolah (Kanan) */}
+                        <img 
+                            src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+                            alt="Logo Sekolah" 
+                            className="w-16 h-16 md:w-20 md:h-20 object-contain"
+                        />
                     </div>
                 </div>
 
