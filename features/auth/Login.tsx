@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ApiService } from '../../services/api';
-import { User, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Building2, X, ShieldAlert } from 'lucide-react';
 import { Role } from '../../types';
 import clsx from 'clsx';
 // @ts-ignore
@@ -19,6 +20,15 @@ export const Login = () => {
   const [error, setError] = useState('');
   const [animationData, setAnimationData] = useState<any>(null);
 
+  // Secret Admin Trigger State
+  const [logoClicks, setLogoClicks] = useState(0);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  
+  // Admin Form State
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminLoading, setAdminLoading] = useState(false);
+
   // Fetch Animation
   useEffect(() => {
     fetch('/Online Learning.json')
@@ -26,6 +36,22 @@ export const Login = () => {
       .then(data => setAnimationData(data))
       .catch(err => console.error("Animation load failed", err));
   }, []);
+
+  // Reset Logo Clicks after 2 seconds of inactivity
+  useEffect(() => {
+    if (logoClicks === 0) return;
+    const timer = setTimeout(() => setLogoClicks(0), 2000);
+    return () => clearTimeout(timer);
+  }, [logoClicks]);
+
+  const handleSecretTrigger = () => {
+    const newCount = logoClicks + 1;
+    setLogoClicks(newCount);
+    if (newCount >= 5) {
+        setIsAdminModalOpen(true);
+        setLogoClicks(0);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +64,12 @@ export const Login = () => {
       // 1. Call API
       const user = await ApiService.login(identifier, password);
       
-      // 2. Role Validation
-      if (user.role !== Role.ADMIN && user.role !== selectedRole) {
+      // 2. Role Validation for Public Login
+      if (user.role === Role.ADMIN) {
+          throw new Error("Akses Admin dibatasi. Gunakan jalur login khusus.");
+      }
+      
+      if (user.role !== selectedRole) {
          throw new Error(`Akun ini tidak terdaftar sebagai ${getRoleLabel(selectedRole)}. Silakan ganti peran.`);
       }
 
@@ -49,6 +79,22 @@ export const Login = () => {
       setError(err.message || 'Login gagal. Periksa kredensial anda.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminLoading(true);
+    try {
+        const user = await ApiService.login(adminEmail, adminPassword);
+        if (user.role !== Role.ADMIN) {
+            throw new Error("Akun ini bukan akun Administrator.");
+        }
+        login(user);
+    } catch (err: any) {
+        alert(err.message || "Gagal login admin.");
+    } finally {
+        setAdminLoading(false);
     }
   };
 
@@ -78,7 +124,8 @@ export const Login = () => {
               <img 
                  src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
                  alt="Logo" 
-                 className="w-10 h-10 object-contain"
+                 className="w-10 h-10 object-contain cursor-pointer active:scale-95 transition-transform"
+                 onClick={handleSecretTrigger}
               />
               <span className="font-bold text-gray-800 tracking-tight">SMK EL MOSTHOFA</span>
            </div>
@@ -223,7 +270,9 @@ export const Login = () => {
                 <img 
                    src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
                    alt="Logo Sekolah" 
-                   className="w-28 h-28 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                   className="w-28 h-28 object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500 cursor-pointer select-none active:scale-95"
+                   onClick={handleSecretTrigger}
+                   title="Double click to interact"
                 />
                 <div className="flex flex-col items-center">
                     <h1 className="text-3xl font-extrabold tracking-tight drop-shadow-lg font-serif">
@@ -254,6 +303,70 @@ export const Login = () => {
              </p>
          </div>
       </div>
+
+      {/* --- SECRET ADMIN MODAL --- */}
+      {isAdminModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-md transition-opacity" onClick={() => setIsAdminModalOpen(false)}></div>
+              <div className="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-gray-700 animate-in zoom-in-95 duration-300">
+                  
+                  <div className="p-6 border-b border-gray-700 flex justify-between items-center bg-gray-900/50">
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                          <ShieldAlert className="w-5 h-5 text-red-500" />
+                          Restricted Admin Access
+                      </h3>
+                      <button onClick={() => setIsAdminModalOpen(false)} className="text-gray-400 hover:text-white">
+                          <X className="w-5 h-5" />
+                      </button>
+                  </div>
+
+                  <form onSubmit={handleAdminLogin} className="p-8 space-y-6">
+                      <div className="space-y-4">
+                          <div>
+                              <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">Admin Email</label>
+                              <div className="relative">
+                                  <User className="w-4 h-4 text-gray-500 absolute left-3 top-3.5" />
+                                  <input 
+                                      type="text" 
+                                      required
+                                      value={adminEmail}
+                                      onChange={(e) => setAdminEmail(e.target.value)}
+                                      className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none placeholder-gray-500"
+                                      placeholder="admin@sekolah.sch.id"
+                                  />
+                              </div>
+                          </div>
+                          <div>
+                              <label className="block text-xs font-bold text-gray-400 uppercase mb-1.5">Secure Password</label>
+                              <div className="relative">
+                                  <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-3.5" />
+                                  <input 
+                                      type="password" 
+                                      required
+                                      value={adminPassword}
+                                      onChange={(e) => setAdminPassword(e.target.value)}
+                                      className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg pl-10 pr-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none placeholder-gray-500"
+                                      placeholder="••••••••"
+                                  />
+                              </div>
+                          </div>
+                      </div>
+
+                      <button 
+                          type="submit" 
+                          disabled={adminLoading}
+                          className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg shadow-lg shadow-red-900/20 transition-all flex justify-center items-center gap-2"
+                      >
+                          {adminLoading ? "Verifying..." : "Authenticate"}
+                      </button>
+                  </form>
+                  <div className="bg-gray-900 p-3 text-center text-xs text-gray-500 border-t border-gray-700">
+                      System Event Logged: {new Date().toISOString()}
+                  </div>
+              </div>
+          </div>
+      )}
+
     </div>
   );
 };
