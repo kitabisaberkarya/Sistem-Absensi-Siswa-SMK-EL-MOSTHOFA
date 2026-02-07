@@ -1,5 +1,4 @@
 
-
 /**
  * MODULE: PENGATURAN SISTEM
  * Konfigurasi utama database dan schema
@@ -13,7 +12,8 @@ const SHEETS = {
   LOGS: 'System_Logs',
   MAJORS: 'Majors',
   SUBJECTS: 'Subjects',
-  CLASSES: 'Classes'
+  CLASSES: 'Classes',
+  SETTINGS: 'Settings' // NEW TABLE
 };
 
 // --- DEFINISI HEADER DATABASE ---
@@ -25,7 +25,8 @@ const SHEET_HEADERS = {
   [SHEETS.LOGS]: ['id', 'user', 'action', 'timestamp', 'status'],
   [SHEETS.MAJORS]: ['id', 'code', 'name'],
   [SHEETS.SUBJECTS]: ['id', 'code', 'name', 'category'],
-  [SHEETS.CLASSES]: ['id', 'name', 'level', 'majorId']
+  [SHEETS.CLASSES]: ['id', 'name', 'level', 'majorId'],
+  [SHEETS.SETTINGS]: ['key', 'value', 'description'] // NEW HEADERS
 };
 
 // --- UTILS: GLOBAL HELPERS ---

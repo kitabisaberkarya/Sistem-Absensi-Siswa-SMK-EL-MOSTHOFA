@@ -3,7 +3,7 @@ import { User, Role, Student, SubmissionPayload, DashboardStats, CreateTeacherPa
 
 // --- CONFIGURATION ---
 // IMPORTANT: Replace this URL with your deployed Web App URL from Google Apps Script
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqu1l_SwJix6FaLk5cYkbpAfsEH6UsZcNzd4sGbmEjatcIRhlvWWy5HJAxy5ie60xR/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwd-VmNZeJj3R1PIh1fZerhR3KKQRlAvusfcbUhtej8QfEGMsN3CARirdvwliR7-6fDug/exec';
 
 // --- CACHE STORE (Client Side) ---
 // Menyimpan data statis agar tidak fetch berulang kali saat navigasi
@@ -88,6 +88,20 @@ export interface CounselingData {
   total: number;
   status: 'Aman' | 'Waspada' | 'Bahaya';
   lastOffense: string | null;
+}
+
+// New Interface for System Settings
+export interface SystemSettings {
+  schoolName: string;
+  schoolAddress: string;
+  schoolPhone: string;
+  schoolEmail: string;
+  schoolWebsite: string;
+  foundationName: string;
+  schoolLogo: string;
+  foundationLogo: string;
+  headmasterName?: string;
+  headmasterNip?: string;
 }
 
 export const ApiService = {
@@ -279,5 +293,38 @@ export const ApiService = {
         };
     }
     return data as DashboardStats;
+  },
+
+  // --- SETTINGS & UPLOAD SERVICES (NEW) ---
+  
+  getSystemSettings: async (): Promise<SystemSettings> => {
+    const data = await fetchScript('getSystemSettings');
+    return data;
+  },
+
+  saveSystemSettings: async (settings: Partial<SystemSettings>): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('saveSystemSettings', settings);
+    return data;
+  },
+
+  uploadFile: async (file: File): Promise<{ success: boolean; url: string }> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            try {
+                const base64Data = reader.result as string;
+                const result = await fetchScript('uploadFile', {
+                    data: base64Data,
+                    filename: file.name,
+                    mimeType: file.type
+                });
+                resolve(result);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = (error) => reject(error);
+    });
   }
 };

@@ -16,7 +16,7 @@ function doGet(e) {
 function handleRequest(e) {
   const lock = LockService.getScriptLock();
   // Reduce lock wait time, fail faster if busy to prevent queue pile-up
-  lock.tryLock(5000); 
+  lock.tryLock(10000); 
 
   try {
     let payload = {};
@@ -158,7 +158,7 @@ function handleRequest(e) {
         result = getCachedData('fetchDashboardStats', getDashboardStats, 1800); // 30 Mins
         break;
         
-      // System
+      // System & Backup
       case 'backupDatabase':
         result = backupDatabase();
         break;
@@ -169,6 +169,17 @@ function handleRequest(e) {
         cache.remove('fetchDashboardStats');
         cache.remove('fetchCounselingData');
         cache.remove('fetchAllStudents');
+        break;
+
+      // SETTINGS & UPLOAD (NEW)
+      case 'getSystemSettings':
+        result = getSystemSettings();
+        break;
+      case 'saveSystemSettings':
+        result = saveSystemSettings(payload);
+        break;
+      case 'uploadFile':
+        result = uploadFileToDrive(payload);
         break;
 
       default:
