@@ -1,0 +1,102 @@
+
+/**
+ * MODULE: MANAJEMEN DATA AKADEMIK
+ */
+
+// --- MAJORS ---
+function getAllMajors() { return getData(SHEETS.MAJORS); }
+
+function createMajor(payload) {
+  const sheet = getSheetOrSetup(SHEETS.MAJORS);
+  const majors = getData(SHEETS.MAJORS);
+  if (majors.find(m => m.code === payload.code)) throw new Error(`Kode ${payload.code} exist.`);
+  const newId = 'M_' + Date.now();
+  sheet.appendRow([newId, payload.code, payload.name]);
+  return { message: 'Success' };
+}
+
+function deleteMajor(id) {
+  const sheet = getSheetOrSetup(SHEETS.MAJORS);
+  deleteRowById(sheet, id);
+  return { message: 'Deleted' };
+}
+
+// --- SUBJECTS ---
+function getAllSubjects() { return getData(SHEETS.SUBJECTS); }
+
+function createSubject(payload) {
+  const sheet = getSheetOrSetup(SHEETS.SUBJECTS);
+  const subjects = getData(SHEETS.SUBJECTS);
+  if (subjects.find(s => s.code === payload.code)) throw new Error(`Mapel ${payload.code} exist.`);
+  const newId = 'SUB_' + Date.now();
+  sheet.appendRow([newId, payload.code, payload.name, payload.category]);
+  return { message: 'Success' };
+}
+
+function deleteSubject(id) {
+  const sheet = getSheetOrSetup(SHEETS.SUBJECTS);
+  deleteRowById(sheet, id);
+  return { message: 'Deleted' };
+}
+
+/**
+ * IMPORT SUBJECTS (NEW)
+ * Payload: [{code, name, category}, ...]
+ */
+function importSubjects(subjectsList) {
+  const sheet = getSheetOrSetup(SHEETS.SUBJECTS);
+  const existingSubjects = getData(SHEETS.SUBJECTS);
+  const existingCodes = new Set(existingSubjects.map(s => String(s.code).toUpperCase()));
+  
+  const newRows = [];
+  let count = 0;
+  
+  subjectsList.forEach(s => {
+    const code = String(s.code).trim().toUpperCase();
+    if (code && !existingCodes.has(code)) {
+      newRows.push([
+        'SUB_' + Math.floor(Math.random()*100000),
+        code,
+        s.name,
+        s.category || 'Umum'
+      ]);
+      existingCodes.add(code);
+      count++;
+    }
+  });
+  
+  if (newRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+  }
+  return { success: true, message: `Imported ${count} subjects.`, count: count };
+}
+
+// --- CLASSES ---
+function getAllClasses() { return getData(SHEETS.CLASSES); }
+
+function createClass(payload) {
+  const sheet = getSheetOrSetup(SHEETS.CLASSES);
+  const classes = getData(SHEETS.CLASSES);
+  if (classes.find(c => c.name.toLowerCase() === payload.name.toLowerCase())) throw new Error(`Kelas ${payload.name} exist.`);
+  const newId = 'CLS_' + Date.now();
+  sheet.appendRow([newId, payload.name, payload.level, payload.major]);
+  return { message: 'Success' };
+}
+
+function deleteClass(id) {
+  const sheet = getSheetOrSetup(SHEETS.CLASSES);
+  deleteRowById(sheet, id);
+  return { message: 'Deleted' };
+}
+
+// Helper
+function deleteRowById(sheet, id) {
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(id)) {
+      sheet.deleteRow(i + 1);
+      return;
+    }
+  }
+  throw new Error("ID not found");
+}

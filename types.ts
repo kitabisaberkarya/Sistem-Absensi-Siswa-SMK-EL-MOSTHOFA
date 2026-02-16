@@ -203,6 +203,7 @@ export interface TeacherHistoryLog {
   topic: string;
   studentCount: number; 
   timestamp: string;
+  notesSample?: string[];
 }
 
 // --- User Management Types ---
@@ -234,4 +235,54 @@ export interface CreateStudentPayload {
 
 export interface UpdateStudentPayload extends CreateStudentPayload {
   id: string;
+}
+
+// --- Principal Report Data Interfaces ---
+
+export interface PrincipalReportSummary {
+  totalStudents: number;
+  avgAttendance: number;
+  totalAlpha: number;
+  totalSick: number;
+  totalPermission: number;
+}
+
+export interface GradeComparison {
+  grade: string;
+  attendance: number;
+}
+
+export interface ClassPerformance {
+  className: string;
+  percentage: number;
+  predicate: string;
+}
+
+export interface PrincipalReportData {
+  summary: PrincipalReportSummary;
+  gradeComparison: GradeComparison[];
+  classPerformance: ClassPerformance[];
+}
+
+// --- Counseling Data Interfaces ---
+
+export interface CounselingData {
+  student: Student;
+  alpha: number;
+  sick: number;
+  permission: number;
+  status: 'Aman' | 'Waspada' | 'Bahaya';
+}
+
+// --- System Settings Interfaces ---
+
+export interface SystemSettings {
+  schoolName: string;
+  schoolAddress: string;
+  schoolPhone: string;
+  schoolEmail: string;
+  schoolWebsite: string;
+  foundationName: string;
+  schoolLogo: string;
+  foundationLogo: string;
 }
