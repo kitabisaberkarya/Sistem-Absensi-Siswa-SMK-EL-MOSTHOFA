@@ -7,9 +7,7 @@ import { AddMajorModal } from '../../components/AddMajorModal';
 import { AddSubjectModal } from '../../components/AddSubjectModal';
 import { BulkSubjectImportModal } from '../../components/BulkSubjectImportModal';
 import { AddClassModal } from '../../components/AddClassModal';
-import { 
-  BookMarked, Library, Plus, Trash2, Search, School, Tag, LayoutGrid, Upload
-} from 'lucide-react';
+import { Search, Plus, Upload } from 'lucide-react';
 import clsx from 'clsx';
 
 type Tab = 'majors' | 'subjects' | 'classes';
@@ -29,8 +27,6 @@ export const AcademicsPage = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
 
-  // ... fetch functions (same as before) ...
-  const fetchMajors = async () => { /* ... */ };
   const fetchSubjects = async () => {
       setLoading(true);
       try {
@@ -39,7 +35,6 @@ export const AcademicsPage = () => {
       } catch(e) { console.error(e); }
       finally { setLoading(false); }
   };
-  const fetchClasses = async () => { /* ... */ };
 
   useEffect(() => {
     if (activeTab === 'majors') {
@@ -60,8 +55,6 @@ export const AcademicsPage = () => {
         load();
     }
   }, [activeTab]);
-
-  // ... delete functions ...
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -89,7 +82,7 @@ export const AcademicsPage = () => {
             
             <div className="flex gap-2">
                 {activeTab === 'subjects' && (
-                    <Button variant="secondary" onClick={() => setIsImportSubjectOpen(true)} className="bg-white border">
+                    <Button variant="secondary" onClick={() => setIsImportSubjectOpen(true)} className="bg-white border border-gray-200 text-green-700 hover:bg-green-50">
                         <Upload className="w-4 h-4 mr-2" /> Import Excel
                     </Button>
                 )}
@@ -99,21 +92,52 @@ export const AcademicsPage = () => {
             </div>
         </div>
 
-        {/* List Logic Same as before but ensures filtered Subject list displays */}
         {activeTab === 'subjects' && (
              <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-100 uppercase text-xs text-gray-500"><tr><th className="px-6 py-3">Kode</th><th className="px-6 py-3">Nama</th><th className="px-6 py-3">Kategori</th></tr></thead>
-                    <tbody className="divide-y">
+                    <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold">
+                        <tr><th className="px-6 py-3">Kode</th><th className="px-6 py-3">Nama Mata Pelajaran</th><th className="px-6 py-3">Kategori</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
                          {subjects.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((s) => (
-                             <tr key={s.id}><td className="px-6 py-3 font-mono">{s.code}</td><td className="px-6 py-3">{s.name}</td><td className="px-6 py-3">{s.category}</td></tr>
+                             <tr key={s.id} className="hover:bg-gray-50">
+                                 <td className="px-6 py-3 font-mono text-brand-600 font-bold">{s.code}</td>
+                                 <td className="px-6 py-3 font-medium text-gray-900">{s.name}</td>
+                                 <td className="px-6 py-3">
+                                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{s.category}</span>
+                                 </td>
+                             </tr>
                          ))}
                     </tbody>
                 </table>
              </div>
         )}
         
-        {/* Render other tabs (majors, classes) similarly... */}
+        {activeTab === 'majors' && (
+             <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold"><tr><th className="px-6 py-3">Kode</th><th className="px-6 py-3">Nama Jurusan</th></tr></thead>
+                    <tbody className="divide-y divide-gray-100">
+                         {majors.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).map((m) => (
+                             <tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-mono font-bold">{m.code}</td><td className="px-6 py-3">{m.name}</td></tr>
+                         ))}
+                    </tbody>
+                </table>
+             </div>
+        )}
+
+        {activeTab === 'classes' && (
+             <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold"><tr><th className="px-6 py-3">Nama Kelas</th><th className="px-6 py-3">Tingkat</th><th className="px-6 py-3">Jurusan</th></tr></thead>
+                    <tbody className="divide-y divide-gray-100">
+                         {classes.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map((c) => (
+                             <tr key={c.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-bold">{c.name}</td><td className="px-6 py-3">{c.level}</td><td className="px-6 py-3">{c.major}</td></tr>
+                         ))}
+                    </tbody>
+                </table>
+             </div>
+        )}
       </div>
 
       <AddMajorModal isOpen={isAddMajorOpen} onClose={() => { setIsAddMajorOpen(false); /* refresh */ }} />
