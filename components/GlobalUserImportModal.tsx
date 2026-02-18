@@ -1,10 +1,9 @@
 
 import React, { useState, useRef } from 'react';
-import { X, FileSpreadsheet, Upload, CheckCircle2, AlertCircle, Download, FileUp, Loader2, Users } from 'lucide-react';
+import { X, Upload, CheckCircle2, AlertCircle, Download, FileUp, Users, FileText } from 'lucide-react';
 import { Button } from './Button';
-import { ImportedUser } from '../types';
+import { ImportedUser, Role } from '../types';
 import { ApiService } from '../services/api';
-import * as XLSX from 'xlsx';
 import clsx from 'clsx';
 
 interface Props {
@@ -20,8 +19,37 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  // --- CSV UTILITIES ---
+
+  const generateCSV = (headers: string[], rows: string[][]) => {
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(e => e.map(cell => `"${cell}"`).join(',')) // Quote cells to handle commas
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    return URL.createObjectURL(blob);
+  };
+
+  const parseCSVLine = (text: string) => {
+    // Robust regex to handle quoted commas (e.g. "Jakarta, Indonesia")
+    const re_value = /(?!\s*$)\s*(?:'([^']*)'|"([^"]*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g;
+    const a = [];
+    text.replace(re_value, function(m0, m1, m2, m3) {
+      if (m1 !== undefined) a.push(m1.replace(/\\'/g, "'"));
+      else if (m2 !== undefined) a.push(m2.replace(/\\"/g, '"'));
+      else if (m3 !== undefined) a.push(m3);
+      return '';
+    });
+    // Handle special case of empty last value
+    if (/,\s*$/.test(text)) a.push('');
+    return a;
+  };
+
+  // --- HANDLERS ---
+
   const handleDownloadTemplate = () => {
-    const headers = ["Nama Lengkap", "Email", "Role", "NIP", "No HP", "Mapel (Khusus Guru)", "Jenis Kelamin (L/P)", "Password (Opsional)"];
+    const headers = ["Nama Lengkap", "Email", "Role", "NIP", "No HP", "Mapel", "Jenis Kelamin", "Password"];
     const data = [
       ["Budi Santoso", "budi@sekolah.sch.id", "TEACHER", "19850101", "08123456789", "Matematika", "L", "123456"],
       ["Siti Aminah", "siti@sekolah.sch.id", "COUNSELOR", "19900202", "08129876543", "-", "P", ""],
@@ -29,11 +57,13 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
       ["Staff Admin", "admin@sekolah.sch.id", "ADMIN", "19950404", "08140000000", "-", "L", ""]
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    ws['!cols'] = [{ wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 10 }, { wch: 15 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template User Global");
-    XLSX.writeFile(wb, "Template_Import_Users.xlsx");
+    const url = generateCSV(headers, data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "template_users_global.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,47 +72,62 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
     setLoading(true);
     const reader = new FileReader();
+    
     reader.onload = (evt) => {
       try {
-        const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
+        const text = evt.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim() !== '');
         
-        const rawData = XLSX.utils.sheet_to_json(sheet);
+        if (lines.length < 2) throw new Error("File CSV kosong atau format salah.");
 
-        // Intelligent Mapping
-        const users: ImportedUser[] = rawData.map((row: any) => {
-            const keys = Object.keys(row);
-            const k = (target: string) => keys.find(key => key.toLowerCase().includes(target.toLowerCase()));
+        // Detect Header Index
+        const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+        
+        const mapData = lines.slice(1).map(line => {
+            const row = parseCSVLine(line);
+            
+            // Safe Index Access Helper
+            const getVal = (keywords: string[]) => {
+                const idx = headers.findIndex(h => keywords.some(k => h.includes(k)));
+                return idx !== -1 ? (row[idx] || '').trim() : '';
+            };
+
+            const roleRaw = getVal(['role', 'jabatan', 'posisi']).toUpperCase();
+            // Validate Role
+            let role = 'TEACHER';
+            if (['ADMIN', 'COUNSELOR', 'PRINCIPAL'].includes(roleRaw)) role = roleRaw;
 
             return {
-                name: String(row[k('nama') || 'Name'] || '').trim(),
-                email: String(row[k('email') || 'Email'] || '').trim(),
-                role: String(row[k('role') || 'Jabatan'] || 'TEACHER').toUpperCase().trim(),
-                nip: String(row[k('nip') || 'NIP'] || '-').trim(),
-                phone: String(row[k('hp') || 'phone'] || '-').trim(),
-                subject: String(row[k('mapel') || 'subject'] || '-').trim(),
-                gender: (String(row[k('kelamin') || 'gender'] || 'L').toUpperCase().charAt(0) === 'P' ? 'P' : 'L') as 'L'|'P',
-                password: String(row[k('pass') || 'password'] || '123456').trim()
-            };
-        }).filter(u => u.name && u.email); // Must have name and email
+                name: getVal(['nama', 'name']),
+                email: getVal(['email', 'surel']),
+                role: role,
+                nip: getVal(['nip', 'nomor induk']),
+                phone: getVal(['hp', 'phone', 'telp']),
+                subject: getVal(['mapel', 'subject', 'pelajaran']),
+                gender: getVal(['kelamin', 'gender', 'l/p']).toUpperCase().startsWith('P') ? 'P' : 'L',
+                password: getVal(['pass', 'kata sandi', 'sandi']) || '123456'
+            } as ImportedUser;
+        });
 
-        if (users.length > 0) {
-            setParsedData(users);
+        const validData = mapData.filter(u => u.name && u.email && u.email.includes('@'));
+
+        if (validData.length > 0) {
+            setParsedData(validData);
             setStep('preview');
         } else {
-            alert("Format Excel tidak dikenali atau kosong. Pastikan kolom Nama dan Email ada.");
+            alert("Tidak ada data valid yang ditemukan. Pastikan format CSV benar (Nama, Email wajib diisi).");
         }
+
       } catch (err) {
         console.error(err);
-        alert("Gagal membaca file Excel. Pastikan file tidak rusak.");
+        alert("Gagal membaca file CSV. Pastikan file tidak rusak dan menggunakan pemisah koma.");
       } finally {
         setLoading(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
-    reader.readAsArrayBuffer(file);
+    
+    reader.readAsText(file);
   };
 
   const handleImport = async () => {
@@ -121,8 +166,8 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <Users className="w-6 h-6" />
              </div>
              <div>
-                <h3 className="text-xl font-bold text-gray-900">Import Pengguna Global</h3>
-                <p className="text-sm text-gray-500">Upload Guru, Admin, Kepala Sekolah, dan Staff via CSV/Excel.</p>
+                <h3 className="text-xl font-bold text-gray-900">Import Pengguna Global (CSV)</h3>
+                <p className="text-sm text-gray-500">Upload Guru, Admin, Kepala Sekolah, dan Staff via CSV.</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-600">
@@ -135,17 +180,17 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
           
           {step === 'input' && (
             <div className="flex-1 p-6 flex flex-col items-center justify-center text-center">
-              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-                 <FileUp className="w-10 h-10 text-blue-400" />
+              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 border-2 border-blue-100">
+                 <FileText className="w-10 h-10 text-blue-500" />
               </div>
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 flex gap-3 text-blue-800 text-sm max-w-2xl text-left">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold mb-1">Panduan Import:</p>
+                  <p className="font-bold mb-1">Format Standar Enterprise (CSV):</p>
                   <ul className="list-disc ml-4 space-y-1">
-                    <li>Gunakan template yang disediakan untuk hasil terbaik.</li>
-                    <li>Kolom <strong>Role</strong> harus diisi salah satu: <code>TEACHER</code>, <code>COUNSELOR</code>, <code>PRINCIPAL</code>, atau <code>ADMIN</code>.</li>
-                    <li>Sistem akan otomatis melewati data jika <strong>Email</strong> atau <strong>NIP</strong> sudah terdaftar.</li>
+                    <li>Gunakan <strong>Template CSV</strong> yang disediakan.</li>
+                    <li>Pastikan pemisah kolom adalah <strong>Koma (,)</strong>.</li>
+                    <li>Kolom <strong>Role</strong> wajib diisi: <code>TEACHER</code>, <code>COUNSELOR</code>, <code>PRINCIPAL</code>, atau <code>ADMIN</code>.</li>
                   </ul>
                 </div>
               </div>
@@ -153,19 +198,19 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <div className="flex gap-4">
                 <Button variant="outline" onClick={handleDownloadTemplate} className="border-gray-300 hover:border-blue-500 hover:text-blue-600">
                    <Download className="w-4 h-4 mr-2" />
-                   Download Template
+                   Download Template CSV
                 </Button>
                 <input 
                     type="file" 
                     hidden 
-                    accept=".xlsx, .xls, .csv" 
+                    accept=".csv" 
                     ref={fileInputRef} 
                     onChange={handleFileUpload} 
                  />
                  
                  <Button onClick={() => fileInputRef.current?.click()} isLoading={loading} className="bg-blue-600 hover:bg-blue-700">
                     <Upload className="w-4 h-4 mr-2" />
-                    Pilih File Excel
+                    Pilih File CSV
                  </Button>
               </div>
             </div>
@@ -175,17 +220,17 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <div className="flex-1 p-0 overflow-hidden flex flex-col">
                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                  <h4 className="font-bold text-gray-700">Preview Data ({parsedData.length} users)</h4>
-                 <Button variant="ghost" onClick={handleReset} className="text-xs h-8">Ulangi</Button>
+                 <Button variant="ghost" onClick={handleReset} className="text-xs h-8">Ulangi Upload</Button>
                </div>
                <div className="flex-1 overflow-auto p-0">
-                 <table className="w-full text-sm text-left">
+                 <table className="w-full text-sm text-left border-collapse">
                    <thead className="text-xs text-gray-500 uppercase bg-gray-100 sticky top-0 shadow-sm z-10">
                      <tr>
-                       <th className="px-6 py-3">Nama</th>
-                       <th className="px-6 py-3">Email</th>
-                       <th className="px-6 py-3">Role</th>
-                       <th className="px-6 py-3">NIP</th>
-                       <th className="px-6 py-3">Mapel</th>
+                       <th className="px-6 py-3 border-b">Nama</th>
+                       <th className="px-6 py-3 border-b">Email</th>
+                       <th className="px-6 py-3 border-b">Role</th>
+                       <th className="px-6 py-3 border-b">NIP</th>
+                       <th className="px-6 py-3 border-b">Mapel</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-100">
@@ -219,9 +264,9 @@ export const GlobalUserImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-in zoom-in">
                      <CheckCircle2 className="w-12 h-12 text-green-600" />
                  </div>
-                 <h3 className="text-3xl font-bold text-gray-900 mb-2">Import Global Berhasil!</h3>
+                 <h3 className="text-3xl font-bold text-gray-900 mb-2">Import Berhasil!</h3>
                  <p className="text-gray-500 max-w-md">
-                   {parsedData.length} data pengguna telah diverifikasi dan masuk ke database sistem.
+                   {parsedData.length} data pengguna telah masuk ke database sistem.
                  </p>
              </div>
           )}

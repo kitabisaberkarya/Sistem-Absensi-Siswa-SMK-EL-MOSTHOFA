@@ -1,9 +1,9 @@
+
 import React, { useState, useRef } from 'react';
-import { X, FileSpreadsheet, Upload, CheckCircle2, Download, FileUp } from 'lucide-react';
+import { X, FileSpreadsheet, Upload, CheckCircle2, Download, FileUp, GraduationCap } from 'lucide-react';
 import { Button } from './Button';
 import { ImportedStudent } from '../types';
 import { ApiService } from '../services/api';
-import * as XLSX from 'xlsx';
 import clsx from 'clsx';
 
 interface Props {
@@ -19,34 +19,43 @@ export const BulkStudentImportModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
   if (!isOpen) return null;
 
+  // --- CSV HELPER ---
+  const generateCSV = (headers: string[], rows: string[][]) => {
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(e => e.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    return URL.createObjectURL(blob);
+  };
+
+  const parseCSVLine = (text: string) => {
+    const re_value = /(?!\s*$)\s*(?:'([^']*)'|"([^"]*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g;
+    const a = [];
+    text.replace(re_value, function(m0, m1, m2, m3) {
+      if (m1 !== undefined) a.push(m1.replace(/\\'/g, "'"));
+      else if (m2 !== undefined) a.push(m2.replace(/\\"/g, '"'));
+      else if (m3 !== undefined) a.push(m3);
+      return '';
+    });
+    if (/,\s*$/.test(text)) a.push('');
+    return a;
+  };
+
   const handleDownloadTemplate = () => {
-    // Definisi Header dan Data Dummy untuk Siswa
-    const headers = ["No", "Nama Siswa", "NIS", "Kelas", "Jenis Kelamin", "No HP Ortu", "Alamat"];
+    const headers = ["No", "Nama Siswa", "NIS", "Kelas", "Jenis Kelamin (L/P)", "No HP Ortu", "Alamat"];
     const data = [
-      ["1", "Ahmad Dahlan", "2023001", "10-IPA-1", "L", "081234567890", "Jl. Raya Pamekasan No. 1"],
-      ["2", "Siti Aisyah", "2023002", "10-IPA-1", "P", "081987654321", "Jl. Trunojoyo No. 45"],
+      ["1", "Ahmad Dahlan", "2023001", "10-TKJ-1", "L", "081234567890", "Jl. Raya Pamekasan No. 1"],
+      ["2", "Siti Aisyah", "2023002", "10-TKJ-1", "P", "081987654321", "Jl. Trunojoyo No. 45"],
     ];
 
-    // Buat Worksheet
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    
-    // Set lebar kolom agar rapi
-    ws['!cols'] = [
-      { wch: 5 },  // No
-      { wch: 30 }, // Nama
-      { wch: 15 }, // NIS
-      { wch: 15 }, // Kelas
-      { wch: 15 }, // Gender
-      { wch: 20 }, // HP
-      { wch: 40 }  // Alamat
-    ];
-
-    // Buat Workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template Siswa");
-
-    // Download
-    XLSX.writeFile(wb, "Template_Import_Siswa.xlsx");
+    const url = generateCSV(headers, data);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "template_siswa_sekolah.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,41 +64,51 @@ export const BulkStudentImportModal: React.FC<Props> = ({ isOpen, onClose }) => 
 
     setLoading(true);
     const reader = new FileReader();
+    
     reader.onload = (evt) => {
       try {
-        const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        const text = evt.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim() !== '');
 
-        // Map data Excel ke format internal
-        const students: ImportedStudent[] = jsonData.map((row: any) => ({
-            no: (row['No'] || row['no'] || '0').toString(),
-            name: row['Nama Siswa'] || row['Nama'] || row['name'] || '',
-            nis: (row['NIS'] || row['nis'] || '').toString(),
-            className: row['Kelas'] || row['Class'] || row['className'] || '',
-            gender: ((row['Jenis Kelamin'] || row['Gender'] || row['gender'] || 'L') === 'L' ? 'L' : 'P') as 'L' | 'P',
-            parentPhone: (row['No HP Ortu'] || row['HP'] || row['phone'] || '').toString(),
-            address: row['Alamat'] || row['Address'] || ''
-        })).filter((s: ImportedStudent) => s.name && s.nis);
+        if (lines.length < 2) throw new Error("File CSV kosong atau format salah.");
+
+        const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+
+        const students = lines.slice(1).map(line => {
+            const row = parseCSVLine(line);
+            
+            const getVal = (keywords: string[]) => {
+                const idx = headers.findIndex(h => keywords.some(k => h.includes(k)));
+                return idx !== -1 ? (row[idx] || '').trim() : '';
+            };
+
+            return {
+                no: getVal(['no']),
+                name: getVal(['nama', 'name']),
+                nis: getVal(['nis', 'induk']),
+                className: getVal(['kelas', 'class']),
+                gender: getVal(['kelamin', 'gender', 'l/p']).toUpperCase().startsWith('P') ? 'P' : 'L',
+                parentPhone: getVal(['hp', 'phone', 'ortu']),
+                address: getVal(['alamat', 'address'])
+            } as ImportedStudent;
+        }).filter(s => s.name && s.nis);
 
         if (students.length > 0) {
             setParsedData(students);
             setStep('preview');
         } else {
-            alert("Data kosong atau format template tidak sesuai (Header: No, Nama Siswa, NIS, Kelas, Jenis Kelamin, ...).");
+            alert("Data kosong atau format template tidak sesuai (Header: Nama Siswa, NIS, Kelas, ...).");
         }
       } catch (err) {
         console.error(err);
-        alert("Gagal membaca file Excel. Pastikan file tidak rusak.");
+        alert("Gagal membaca file CSV.");
       } finally {
         setLoading(false);
-        // Reset input agar bisa upload file yang sama jika perlu
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
-    reader.readAsArrayBuffer(file);
+    
+    reader.readAsText(file);
   };
 
   const handleImport = async () => {
@@ -118,11 +137,11 @@ export const BulkStudentImportModal: React.FC<Props> = ({ isOpen, onClose }) => 
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
           <div className="flex items-center gap-4">
              <div className="p-3 bg-brand-600 rounded-lg text-white shadow-lg shadow-brand-200">
-                <FileSpreadsheet className="w-6 h-6" />
+                <GraduationCap className="w-6 h-6" />
              </div>
              <div>
-                <h3 className="text-xl font-bold text-gray-900">Import Data Siswa (Massal)</h3>
-                <p className="text-sm text-gray-500">Upload file Excel (.xlsx) sesuai template yang disediakan.</p>
+                <h3 className="text-xl font-bold text-gray-900">Import Data Siswa (CSV)</h3>
+                <p className="text-sm text-gray-500">Upload bulk data siswa via file .csv</p>
              </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-600">
@@ -140,22 +159,22 @@ export const BulkStudentImportModal: React.FC<Props> = ({ isOpen, onClose }) => 
               </div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Upload File Database Siswa</h4>
               <p className="text-gray-500 max-w-md mb-8">
-                Gunakan template resmi untuk menghindari kesalahan format data. File harus berekstensi <strong>.xlsx</strong>.
+                Gunakan template resmi CSV. Pastikan data Kelas sesuai dengan Data Kelas di sistem.
               </p>
               
               <div className="flex gap-4">
                 <Button variant="outline" onClick={handleDownloadTemplate} className="border-gray-300 hover:border-brand-500 hover:text-brand-600">
                    <Download className="w-4 h-4 mr-2" />
-                   Download Template
+                   Download Template CSV
                 </Button>
                 <Button onClick={() => fileInputRef.current?.click()} isLoading={loading} className="bg-brand-600 hover:bg-brand-700">
                    <Upload className="w-4 h-4 mr-2" />
-                   Pilih File Excel
+                   Pilih File CSV
                 </Button>
                 <input 
                     type="file" 
                     hidden 
-                    accept=".xlsx, .xls" 
+                    accept=".csv" 
                     ref={fileInputRef} 
                     onChange={handleFileUpload} 
                  />
@@ -185,7 +204,7 @@ export const BulkStudentImportModal: React.FC<Props> = ({ isOpen, onClose }) => 
                    <tbody className="divide-y divide-gray-100">
                      {parsedData.map((row, idx) => (
                        <tr key={idx} className="hover:bg-gray-50">
-                         <td className="px-6 py-3">{row.no}</td>
+                         <td className="px-6 py-3">{row.no || idx + 1}</td>
                          <td className="px-6 py-3 font-mono font-bold text-gray-700">{row.nis}</td>
                          <td className="px-6 py-3 font-medium text-gray-900">{row.name}</td>
                          <td className="px-6 py-3">
