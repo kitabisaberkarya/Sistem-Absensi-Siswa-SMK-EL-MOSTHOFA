@@ -29,12 +29,15 @@ export const Login = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoading, setAdminLoading] = useState(false);
 
-  // Fetch Animation
+  // Fetch Animation Data on Mount (Avoids import issues)
   useEffect(() => {
-    fetch('/Online Learning.json')
-      .then(res => res.json())
+    fetch('/animation.json')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load animation');
+        return res.json();
+      })
       .then(data => setAnimationData(data))
-      .catch(err => console.error("Animation load failed", err));
+      .catch(err => console.error("Animation load failed:", err));
   }, []);
 
   // Reset Logo Clicks after 2 seconds of inactivity
