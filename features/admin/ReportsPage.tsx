@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  FileText, Clock, BookOpen, School, Filter, RefreshCw
+  FileText, Clock, BookOpen, School, Filter, RefreshCw, Download, Printer, FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '../../components/Button';
 import clsx from 'clsx';
 import { ApiService, FullAttendanceLog } from '../../services/api';
+import { ReportService } from '../../services/ReportService';
 import { SemesterRecapEntry, ClassRoom, User as UserType } from '../../types';
 
 type ReportType = 'logs' | 'semester';
@@ -22,8 +23,12 @@ export const ReportsPage = () => {
   const [logFilterClass, setLogFilterClass] = useState('');
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
-  // Semester State
-  // ... (Existing semester state logic)
+  // Semester Recap State
+  const [semClass, setSemClass] = useState('');
+  const [semPeriod, setSemPeriod] = useState<'Ganjil'|'Genap'>('Ganjil');
+  const [semYear, setSemYear] = useState(new Date().getFullYear().toString());
+  const [recapData, setRecapData] = useState<SemesterRecapEntry[]>([]);
+  const [isRecapLoading, setIsRecapLoading] = useState(false);
 
   // Init Data
   useEffect(() => {
@@ -54,11 +59,49 @@ export const ReportsPage = () => {
       finally { setIsLoadingLogs(false); }
   };
 
+  const fetchSemesterRecap = async () => {
+      if (!semClass) {
+          alert("Mohon pilih kelas terlebih dahulu.");
+          return;
+      }
+      setIsRecapLoading(true);
+      try {
+          const academicYearStr = `${semYear}/${parseInt(semYear) + 1}`;
+          const data = await ApiService.fetchSemesterRecap(semClass, semPeriod, academicYearStr);
+          setRecapData(data.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch (e) {
+          console.error(e);
+          alert("Gagal mengambil data rekap semester.");
+      } finally {
+          setIsRecapLoading(false);
+      }
+  };
+
   const filterLogs = (data: FullAttendanceLog[], date: string, className: string) => {
       let res = data;
       if (date) res = res.filter(l => l.date.startsWith(date));
       if (className) res = res.filter(l => l.className === className);
       setFilteredLogs(res);
+  };
+
+  const handleExportPDF = () => {
+      if (recapData.length === 0) return;
+      ReportService.generateSemesterPDF({
+          title: `LAPORAN PRESENSI SEMESTER ${semPeriod.toUpperCase()}`,
+          subtitle: `TAHUN AJARAN ${semYear}/${parseInt(semYear) + 1} - KELAS ${semClass}`,
+          date: new Date().toLocaleDateString('id-ID'),
+          teacher: 'Administrator'
+      }, recapData);
+  };
+
+  const handleExportExcel = () => {
+      if (recapData.length === 0) return;
+      ReportService.generateSemesterExcel({
+          title: `REKAP_ABSENSI_${semClass}_${semPeriod}_${semYear}`,
+          subtitle: `TAHUN AJARAN ${semYear}/${parseInt(semYear) + 1}`,
+          date: new Date().toLocaleDateString('id-ID'),
+          teacher: 'Administrator'
+      }, recapData);
   };
 
   useEffect(() => {
@@ -81,7 +124,7 @@ export const ReportsPage = () => {
                 Pusat Laporan Absensi
             </h2>
             <p className="text-gray-500 text-sm mt-1">
-                Monitoring aktivitas belajar mengajar per sesi (pergantian jam).
+                Monitoring aktivitas belajar mengajar dan rekapitulasi nilai kehadiran.
             </p>
         </div>
         <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -138,7 +181,7 @@ export const ReportsPage = () => {
                   </div>
               </div>
 
-              {/* Enhanced Log Table */}
+              {/* Log Table */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   <table className="w-full text-sm text-left">
                       <thead className="bg-gray-50 text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
@@ -198,10 +241,127 @@ export const ReportsPage = () => {
           </div>
       )}
 
-      {/* Placeholder for Semester Tab */}
+      {/* CONTENT: SEMESTER RECAP */}
       {activeTab === 'semester' && (
-          <div className="p-12 text-center text-gray-500 bg-white rounded-xl border border-dashed">
-              Fitur Rekap Semester tersedia di menu terpisah (Coming Soon).
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              
+              {/* Filter Bar */}
+              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex flex-col md:flex-row gap-4 items-end">
+                      <div className="w-full md:w-auto flex-1">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Pilih Kelas</label>
+                          <select 
+                            className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                            value={semClass}
+                            onChange={(e) => setSemClass(e.target.value)}
+                          >
+                              <option value="">-- Pilih Kelas --</option>
+                              {classList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          </select>
+                      </div>
+                      
+                      <div className="w-full md:w-auto">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Semester</label>
+                          <select 
+                            className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                            value={semPeriod}
+                            onChange={(e) => setSemPeriod(e.target.value as any)}
+                          >
+                              <option value="Ganjil">Ganjil (Juli - Des)</option>
+                              <option value="Genap">Genap (Jan - Jun)</option>
+                          </select>
+                      </div>
+
+                      <div className="w-full md:w-auto">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tahun Ajaran Mulai</label>
+                          <select 
+                            className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                            value={semYear}
+                            onChange={(e) => setSemYear(e.target.value)}
+                          >
+                              <option value="2024">2024/2025</option>
+                              <option value="2025">2025/2026</option>
+                              <option value="2026">2026/2027</option>
+                          </select>
+                      </div>
+
+                      <Button onClick={fetchSemesterRecap} isLoading={isRecapLoading} className="w-full md:w-auto h-[42px]">
+                          Tampilkan Data
+                      </Button>
+                  </div>
+              </div>
+
+              {/* Data Table */}
+              {recapData.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
+                      <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                          <div>
+                              <h3 className="font-bold text-gray-800">Hasil Rekapitulasi</h3>
+                              <p className="text-xs text-gray-500">
+                                  Kelas {semClass} • Semester {semPeriod} {semYear}/{parseInt(semYear)+1}
+                              </p>
+                          </div>
+                          <div className="flex gap-2">
+                              <Button size="sm" variant="secondary" onClick={handleExportExcel} className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">
+                                  <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel
+                              </Button>
+                              <Button size="sm" variant="secondary" onClick={handleExportPDF} className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200">
+                                  <Printer className="w-4 h-4 mr-2" /> Cetak PDF
+                              </Button>
+                          </div>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                          <table className="w-full text-sm text-left">
+                              <thead className="bg-gray-100 text-gray-600 uppercase text-xs font-bold">
+                                  <tr>
+                                      <th className="px-4 py-3 text-center w-12">No</th>
+                                      <th className="px-4 py-3">Nama Siswa</th>
+                                      <th className="px-4 py-3 text-center">L/P</th>
+                                      <th className="px-4 py-3 text-center bg-green-50 text-green-700">Hadir</th>
+                                      <th className="px-4 py-3 text-center text-yellow-600">Sakit</th>
+                                      <th className="px-4 py-3 text-center text-blue-600">Izin</th>
+                                      <th className="px-4 py-3 text-center bg-red-50 text-red-600">Alpha</th>
+                                      <th className="px-4 py-3 text-center">% Kehadiran</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                  {recapData.map((row, idx) => (
+                                      <tr key={row.studentId} className="hover:bg-gray-50">
+                                          <td className="px-4 py-3 text-center text-gray-500">{idx + 1}</td>
+                                          <td className="px-4 py-3 font-medium text-gray-900">
+                                              {row.name}
+                                              <div className="text-[10px] text-gray-400 font-mono">{row.nis}</div>
+                                          </td>
+                                          <td className="px-4 py-3 text-center">{row.gender}</td>
+                                          <td className="px-4 py-3 text-center font-bold bg-green-50/30 text-green-700">{row.present}</td>
+                                          <td className="px-4 py-3 text-center text-yellow-600">{row.sick}</td>
+                                          <td className="px-4 py-3 text-center text-blue-600">{row.permission}</td>
+                                          <td className="px-4 py-3 text-center font-bold bg-red-50/30 text-red-600">{row.alpha}</td>
+                                          <td className="px-4 py-3 text-center">
+                                              <span className={clsx(
+                                                  "px-2 py-1 rounded-md text-xs font-bold",
+                                                  row.percentage >= 90 ? "bg-green-100 text-green-700" :
+                                                  row.percentage >= 75 ? "bg-yellow-100 text-yellow-700" :
+                                                  "bg-red-100 text-red-700"
+                                              )}>
+                                                  {row.percentage}%
+                                              </span>
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      </div>
+                  </div>
+              )}
+
+              {!isRecapLoading && recapData.length === 0 && semClass && (
+                  <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-gray-400">
+                      <FileText className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                      <p>Belum ada data untuk ditampilkan. Silakan pilih filter dan klik "Tampilkan Data".</p>
+                  </div>
+              )}
           </div>
       )}
     </div>
