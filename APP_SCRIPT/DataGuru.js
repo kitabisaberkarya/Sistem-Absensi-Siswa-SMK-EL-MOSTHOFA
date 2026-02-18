@@ -120,8 +120,7 @@ function updateTeacher(payload) {
 }
 
 /**
- * IMPORT TEACHERS FIX
- * Mencegah duplikasi dengan mengecek NIP atau Email/Kode
+ * IMPORT TEACHERS (Legacy/Specific)
  */
 function importTeachers(teachers) {
   const lock = LockService.getScriptLock();
@@ -131,7 +130,6 @@ function importTeachers(teachers) {
     const sheet = getSheetOrSetup(SHEETS.USERS);
     const existingUsers = getData(SHEETS.USERS);
     
-    // Set of existing identifiers to prevent duplicates
     const registeredEmails = new Set(existingUsers.map(u => String(u.email).toLowerCase()));
     const registeredNames = new Set(existingUsers.map(u => String(u.name).toLowerCase()));
 
@@ -147,7 +145,6 @@ function importTeachers(teachers) {
 
       const email = `guru.${cleanCode || Math.floor(Math.random()*1000)}@sekolah.sch.id`;
       
-      // Strict Check: Don't add if Email OR Name already exists
       if (!registeredEmails.has(email) && !registeredNames.has(name.toLowerCase())) {
         const newId = 'T_' + (cleanCode || 'IMP') + '_' + Math.floor(Math.random() * 99999);
         
@@ -179,6 +176,82 @@ function importTeachers(teachers) {
     
   } catch (e) {
     throw new Error("Import Failed: " + e.toString());
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * IMPORT GLOBAL USERS (NEW ENTERPRISE FEATURE)
+ * Handles Teachers, Counselors, Principals, Admins in one go.
+ */
+function importGlobalUsers(usersList) {
+  const lock = LockService.getScriptLock();
+  lock.tryLock(20000); // Increased lock time for larger payloads
+
+  try {
+    const sheet = getSheetOrSetup(SHEETS.USERS);
+    const existingUsers = getData(SHEETS.USERS);
+    
+    // Create lookup sets for fast duplicate checking
+    const registeredEmails = new Set(existingUsers.map(u => String(u.email || '').toLowerCase().trim()));
+    const registeredNIPs = new Set(existingUsers.map(u => String(u.nip || '').trim()));
+
+    const newRows = [];
+    let count = 0;
+    
+    // Allowed Roles Enum
+    const ALLOWED_ROLES = ['TEACHER', 'COUNSELOR', 'PRINCIPAL', 'ADMIN'];
+
+    usersList.forEach(u => {
+      const email = String(u.email).toLowerCase().trim();
+      const nip = String(u.nip || '-').trim();
+      const name = String(u.name).trim();
+      
+      // Basic Validation
+      if (!email || !name) return; // Skip invalid rows
+      
+      // Duplicate Check
+      if (registeredEmails.has(email)) return; // Skip duplicate email
+      if (nip !== '-' && registeredNIPs.has(nip)) return; // Skip duplicate NIP
+
+      // Role Validation & Defaulting
+      let role = String(u.role || 'TEACHER').toUpperCase().trim();
+      if (!ALLOWED_ROLES.includes(role)) role = 'TEACHER'; // Default fallback
+
+      // ID Generation
+      const newId = 'U_' + role.substring(0,3) + '_' + Math.floor(Math.random() * 999999);
+      
+      // Data Preparation
+      newRows.push([
+        newId,                      // id
+        name,                       // name
+        email,                      // email
+        u.password || '123456',     // password (secure default)
+        role,                       // role
+        nip,                        // nip
+        u.phone || '-',             // phone
+        u.subject || '-',           // subject
+        u.gender || 'L',            // gender
+        'Active',                   // status
+        ''                          // avatar
+      ]);
+      
+      // Update local sets to prevent duplicates within the upload file itself
+      registeredEmails.add(email);
+      if (nip !== '-') registeredNIPs.add(nip);
+      count++;
+    });
+
+    if (newRows.length > 0) {
+      sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    }
+
+    logSystem('ADMIN', `Bulk Imported ${count} Users Globally`);
+    return { success: true, message: `Berhasil import ${count} pengguna baru. Data ganda/invalid diabaikan.`, count: count };
+    
+  } catch (e) {
+    throw new Error("Global Import Failed: " + e.toString());
   } finally {
     lock.releaseLock();
   }

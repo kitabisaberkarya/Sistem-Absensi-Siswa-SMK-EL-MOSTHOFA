@@ -2,7 +2,7 @@
 import { 
   User, Role, Student, Major, Subject, ClassRoom, 
   SubmissionPayload,
-  CreateTeacherPayload, UpdateTeacherPayload, ImportedTeacher,
+  CreateTeacherPayload, UpdateTeacherPayload, ImportedTeacher, ImportedUser,
   CreateStudentPayload, UpdateStudentPayload, ImportedStudent,
   BackupData, BackupResponse, DashboardStats,
   SemesterRecapEntry, StudentHistoryLog, TeacherHistoryLog,
@@ -28,7 +28,7 @@ export interface FullAttendanceLog {
 
 // --- CONFIGURATION ---
 // URL Deployment Google Apps Script (Web App)
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzGSWnIG0qMAowbhBLuQD55soShDDb7cPszmIMDqIUlaAstcPBNKiI4p4XREese4fsWgw/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywUxDx3E2wXmishI9C0iTDJj2eugqxk0hZIaxibNcfdDEoxffuxctd3mDkIarWjsxlyw/exec';
 
 // FetchScript Implementation
 const fetchScript = async (action: string, params: any = {}, useCache = false): Promise<any> => {
@@ -114,7 +114,7 @@ export const ApiService = {
     return await fetchScript('login', { email, password });
   },
   
-  // Teachers
+  // Teachers & Users
   fetchTeachers: async (): Promise<User[]> => {
     const data = await fetchScript('fetchTeachers', {}, true);
     return (data || []) as User[];
@@ -129,6 +129,9 @@ export const ApiService = {
   },
   importTeachers: async (teachers: ImportedTeacher[]): Promise<{ success: boolean; message: string; count: number }> => {
     return await fetchScript('importTeachers', { teachers });
+  },
+  importGlobalUsers: async (users: ImportedUser[]): Promise<{ success: boolean; message: string; count: number }> => {
+    return await fetchScript('importGlobalUsers', { users });
   },
 
   // Students

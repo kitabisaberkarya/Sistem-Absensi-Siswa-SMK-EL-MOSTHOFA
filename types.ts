@@ -1,5 +1,4 @@
 
-
 export enum Role {
   TEACHER = 'TEACHER',       // Guru Mapel
   COUNSELOR = 'COUNSELOR',   // Guru BK
@@ -84,6 +83,17 @@ export interface ImportedTeacher {
   name: string;
   code: string;
   subject: string;
+}
+
+export interface ImportedUser {
+  name: string;
+  email: string;
+  role: string;
+  nip: string;
+  phone: string;
+  subject: string;
+  gender: 'L' | 'P';
+  password?: string;
 }
 
 export interface ImportedStudent {

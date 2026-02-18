@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
 import { DashboardStats } from '../../types';
-import { UserPlus, Settings, FileUp, MoreVertical, Search, ArrowUpRight } from 'lucide-react';
+import { UserPlus, Settings, FileUp, MoreVertical, Search, ArrowUpRight, Users } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import clsx from 'clsx';
 import { Button } from '../../components/Button';
 import { AddTeacherModal } from '../../components/AddTeacherModal';
 import { AddStudentModal } from '../../components/AddStudentModal';
 import { BulkImportModal } from '../../components/BulkImportModal';
+import { GlobalUserImportModal } from '../../components/GlobalUserImportModal';
 
 interface Props {
   stats: DashboardStats;
@@ -17,6 +18,7 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isGlobalImportOpen, setIsGlobalImportOpen] = useState(false); // New State
 
   // --- Realtime Data Processing ---
 
@@ -205,29 +207,10 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-gray-50">
-                      {/* Row 1: Add Teacher */}
+                      
+                      {/* Row 1: Add Student */}
                       <tr className="hover:bg-gray-50 transition-colors group">
                          <td className="px-5 py-4 text-gray-500">1</td>
-                         <td className="px-5 py-4">
-                            <div className="font-semibold text-gray-700">Tambah Guru Baru</div>
-                            <div className="text-xs text-gray-400">Input manual satu per satu</div>
-                         </td>
-                         <td className="px-5 py-4 text-center">
-                            <span className="px-2 py-1 bg-green-500 text-white text-[10px] font-bold rounded">READY</span>
-                         </td>
-                         <td className="px-5 py-4 text-right">
-                            <button 
-                              onClick={() => setIsTeacherModalOpen(true)}
-                              className="text-brand-600 hover:text-brand-800 text-xs font-bold flex items-center justify-end gap-1 ml-auto"
-                            >
-                               EKSEKUSI <ArrowUpRight className="w-3 h-3" />
-                            </button>
-                         </td>
-                      </tr>
-
-                       {/* Row 2: Add Student */}
-                       <tr className="hover:bg-gray-50 transition-colors group">
-                         <td className="px-5 py-4 text-gray-500">2</td>
                          <td className="px-5 py-4">
                             <div className="font-semibold text-gray-700">Master Data Siswa</div>
                             <div className="text-xs text-gray-400">Registrasi peserta didik</div>
@@ -245,25 +228,50 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
                          </td>
                       </tr>
 
-                      {/* Row 3: Import */}
+                      {/* Row 2: Add Teacher */}
                       <tr className="hover:bg-gray-50 transition-colors group">
-                         <td className="px-5 py-4 text-gray-500">3</td>
+                         <td className="px-5 py-4 text-gray-500">2</td>
                          <td className="px-5 py-4">
-                            <div className="font-semibold text-gray-700">Import Jadwal (CSV)</div>
-                            <div className="text-xs text-gray-400">Upload bulk data guru/jadwal</div>
+                            <div className="font-semibold text-gray-700">Tambah Guru Baru</div>
+                            <div className="text-xs text-gray-400">Input manual satu per satu</div>
                          </td>
                          <td className="px-5 py-4 text-center">
-                            <span className="px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded">SYS</span>
+                            <span className="px-2 py-1 bg-green-500 text-white text-[10px] font-bold rounded">READY</span>
                          </td>
                          <td className="px-5 py-4 text-right">
-                             <button 
-                              onClick={() => setIsImportModalOpen(true)}
+                            <button 
+                              onClick={() => setIsTeacherModalOpen(true)}
                               className="text-brand-600 hover:text-brand-800 text-xs font-bold flex items-center justify-end gap-1 ml-auto"
                             >
                                EKSEKUSI <ArrowUpRight className="w-3 h-3" />
                             </button>
                          </td>
                       </tr>
+
+                      {/* Row 3: Global User Import (NEW) */}
+                      <tr className="hover:bg-gray-50 transition-colors group bg-blue-50/30">
+                         <td className="px-5 py-4 text-gray-500">3</td>
+                         <td className="px-5 py-4">
+                            <div className="font-semibold text-blue-700 flex items-center gap-1">
+                                <Users className="w-3 h-3" /> Import User Global
+                            </div>
+                            <div className="text-xs text-blue-500">
+                                Upload Guru, Staff, Admin via Excel
+                            </div>
+                         </td>
+                         <td className="px-5 py-4 text-center">
+                            <span className="px-2 py-1 bg-blue-500 text-white text-[10px] font-bold rounded">ENTERPRISE</span>
+                         </td>
+                         <td className="px-5 py-4 text-right">
+                             <button 
+                              onClick={() => setIsGlobalImportOpen(true)}
+                              className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center justify-end gap-1 ml-auto"
+                            >
+                               EKSEKUSI <ArrowUpRight className="w-3 h-3" />
+                            </button>
+                         </td>
+                      </tr>
+
                    </tbody>
                 </table>
              </div>
@@ -274,6 +282,7 @@ export const AdminDashboard: React.FC<Props> = ({ stats }) => {
       <AddTeacherModal isOpen={isTeacherModalOpen} onClose={() => setIsTeacherModalOpen(false)} />
       <AddStudentModal isOpen={isStudentModalOpen} onClose={() => setIsStudentModalOpen(false)} />
       <BulkImportModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
+      <GlobalUserImportModal isOpen={isGlobalImportOpen} onClose={() => setIsGlobalImportOpen(false)} />
     </div>
   );
 };
