@@ -1,10 +1,12 @@
 
-
-
-
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, ClipboardList, ShieldCheck, HeartHandshake, Briefcase, Menu, Search, Bell, Mail, Settings, ChevronDown, User, Users, GraduationCap, FileText, Inbox, Database, BookMarked, PieChart, Printer } from 'lucide-react';
+import { 
+  LogOut, LayoutDashboard, ClipboardList, HeartHandshake, Briefcase, 
+  Menu, Search, Bell, Mail, Settings, ChevronDown, 
+  Users, GraduationCap, FileText, Inbox, Database, BookMarked, Printer, 
+  X, Grid
+} from 'lucide-react';
 import { Role, ViewState } from '../types';
 import clsx from 'clsx';
 
@@ -17,20 +19,172 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) => {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // --- ADMIN LAYOUT (Sidebar Style based on Screenshot) ---
-  if (user?.role === Role.ADMIN) {
-    
-    const handleNavClick = (view: ViewState) => {
-      if (onViewChange) onViewChange(view);
-    };
+  // --- HANDLERS ---
+  const handleNavClick = (view: ViewState) => {
+    if (onViewChange) onViewChange(view);
+    setMobileMenuOpen(false); // Close mobile drawer if open
+  };
+
+  // --- MOBILE BOTTOM NAVIGATION COMPONENT ---
+  const MobileBottomNav = () => {
+    // Define menus based on Role
+    let leftItems: { icon: any, label: string, view: ViewState }[] = [];
+    let rightItems: { icon: any, label: string, view: ViewState | 'MORE' }[] = [];
+
+    if (user?.role === Role.ADMIN) {
+        leftItems = [
+            { icon: LayoutDashboard, label: 'Dash', view: 'dashboard' },
+            { icon: Users, label: 'Guru', view: 'teachers' },
+        ];
+        rightItems = [
+            { icon: GraduationCap, label: 'Siswa', view: 'students' },
+            { icon: Grid, label: 'Menu', view: 'MORE' }, // Triggers Drawer
+        ];
+    } else if (user?.role === Role.TEACHER) {
+        leftItems = [
+             { icon: ClipboardList, label: 'Input', view: 'dashboard' },
+        ];
+        rightItems = [
+             { icon: FileText, label: 'Laporan', view: 'teacher-reports' },
+        ];
+        // Center alignment adjustment for fewer items
+        if(leftItems.length === 1) {
+            // Push simpler layout
+        }
+    } else if (user?.role === Role.COUNSELOR) {
+        leftItems = [
+             { icon: HeartHandshake, label: 'Mon', view: 'dashboard' },
+        ];
+        rightItems = [
+             { icon: Printer, label: 'Surat', view: 'counselor-reports' },
+        ];
+    } else if (user?.role === Role.PRINCIPAL) {
+         leftItems = [
+             { icon: LayoutDashboard, label: 'Dash', view: 'dashboard' },
+        ];
+        rightItems = [
+             { icon: FileText, label: 'Laporan', view: 'reports' },
+        ];
+    }
 
     return (
+        <>
+            {/* BOTTOM NAV BAR */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-20 px-4 flex justify-between items-end pb-4 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                
+                {/* LEFT ITEMS */}
+                <div className="flex-1 flex justify-around items-center h-12">
+                    {leftItems.map((item) => (
+                        <button 
+                            key={item.view}
+                            onClick={() => handleNavClick(item.view)}
+                            className={clsx(
+                                "flex flex-col items-center gap-1 transition-colors relative",
+                                currentView === item.view ? "text-brand-600" : "text-gray-400 hover:text-gray-600"
+                            )}
+                        >
+                            <item.icon className={clsx("w-6 h-6", currentView === item.view && "fill-current opacity-20")} />
+                            <span className="text-[10px] font-medium">{item.label}</span>
+                            {currentView === item.view && (
+                                <span className="absolute -top-2 w-1 h-1 bg-brand-600 rounded-full"></span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                {/* CENTER FLOATING LOGO */}
+                <div className="relative w-20 flex justify-center -top-6">
+                     <button 
+                        onClick={() => handleNavClick('dashboard')}
+                        className="relative z-50 transform transition-transform active:scale-95"
+                     >
+                        {/* Glow Effect */}
+                        <div className="absolute inset-0 bg-white rounded-full blur-xl opacity-50"></div>
+                        <img 
+                            src="https://res.cloudinary.com/dt1nrarpq/image/upload/v1770105471/LOGO_SEKOLAH_ourgxr.png" 
+                            alt="Home" 
+                            className="w-16 h-16 object-contain drop-shadow-2xl relative z-10 filter"
+                        />
+                     </button>
+                </div>
+
+                {/* RIGHT ITEMS */}
+                <div className="flex-1 flex justify-around items-center h-12">
+                    {rightItems.map((item) => (
+                        <button 
+                            key={item.label}
+                            onClick={() => item.view === 'MORE' ? setMobileMenuOpen(true) : handleNavClick(item.view as ViewState)}
+                            className={clsx(
+                                "flex flex-col items-center gap-1 transition-colors relative",
+                                (currentView === item.view || (item.view === 'MORE' && mobileMenuOpen)) ? "text-brand-600" : "text-gray-400 hover:text-gray-600"
+                            )}
+                        >
+                            <item.icon className={clsx("w-6 h-6", currentView === item.view && "fill-current opacity-20")} />
+                            <span className="text-[10px] font-medium">{item.label}</span>
+                             {currentView === item.view && (
+                                <span className="absolute -top-2 w-1 h-1 bg-brand-600 rounded-full"></span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* MOBILE DRAWER (FOR ADMIN "MORE" MENU) */}
+            {mobileMenuOpen && (
+                <div className="md:hidden fixed inset-0 z-50 flex items-end justify-center">
+                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}></div>
+                    <div className="bg-white w-full rounded-t-3xl p-6 pb-24 relative animate-in slide-in-from-bottom-10 shadow-2xl">
+                        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6"></div>
+                        <h3 className="font-bold text-gray-800 text-lg mb-4 flex items-center gap-2">
+                            <Grid className="w-5 h-5 text-brand-600" /> Menu Lainnya
+                        </h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            <DrawerItem icon={BookMarked} label="Akademik" onClick={() => handleNavClick('academics')} active={currentView === 'academics'} />
+                            <DrawerItem icon={FileText} label="Laporan" onClick={() => handleNavClick('reports')} active={currentView === 'reports'} />
+                            <DrawerItem icon={Inbox} label="Mailbox" onClick={() => handleNavClick('mailbox')} active={currentView === 'mailbox'} />
+                            <DrawerItem icon={Database} label="Backup" onClick={() => handleNavClick('backup')} active={currentView === 'backup'} />
+                            <DrawerItem icon={Settings} label="Setting" onClick={() => handleNavClick('settings')} active={currentView === 'settings'} />
+                            <div className="flex flex-col items-center gap-2 p-3 rounded-xl active:bg-red-50 text-red-600 transition-colors" onClick={logout}>
+                                <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center border border-red-100 shadow-sm">
+                                    <LogOut className="w-6 h-6" />
+                                </div>
+                                <span className="text-xs font-medium text-center">Keluar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+  };
+
+  const DrawerItem = ({ icon: Icon, label, onClick, active }: any) => (
+      <button 
+        onClick={onClick}
+        className={clsx(
+            "flex flex-col items-center gap-2 p-3 rounded-xl transition-all border",
+            active 
+             ? "bg-brand-50 border-brand-200 text-brand-700" 
+             : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-200"
+        )}
+      >
+          <div className={clsx("w-12 h-12 rounded-full flex items-center justify-center shadow-sm", active ? "bg-white" : "bg-gray-50")}>
+              <Icon className={clsx("w-6 h-6", active ? "text-brand-600" : "text-gray-500")} />
+          </div>
+          <span className="text-xs font-medium text-center">{label}</span>
+      </button>
+  );
+
+  // --- ADMIN DESKTOP LAYOUT ---
+  if (user?.role === Role.ADMIN) {
+    return (
       <div className="flex h-screen bg-[#f3f4f6] font-sans overflow-hidden">
-        {/* Sidebar */}
+        {/* Sidebar (Desktop Only) */}
         <aside 
           className={clsx(
-            "bg-[#2A3F54] text-white flex-shrink-0 transition-all duration-300 flex flex-col",
+            "bg-[#2A3F54] text-white flex-shrink-0 transition-all duration-300 hidden md:flex flex-col",
             sidebarOpen ? "w-64" : "w-20"
           )}
         >
@@ -50,7 +204,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
           {sidebarOpen && (
             <div className="p-6 flex items-center gap-3 border-b border-gray-600/30">
                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border-2 border-white/20">
-                 <img src={user.avatar} alt="User" className="w-full h-full rounded-full" />
+                 <img src={user.avatar} alt="User" className="w-full h-full rounded-full object-cover" />
                </div>
                <div className="overflow-hidden">
                  <p className="text-sm font-semibold truncate">Halo, {user.name.split(' ')[0]}</p>
@@ -96,16 +250,27 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
         </aside>
 
         {/* Main Content Wrapper */}
-        <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
-          {/* Top Header */}
-          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10">
+        <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
+          
+          {/* Top Header (Desktop) & Mobile Minimal Header */}
+          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10 sticky top-0">
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors hidden md:block"
               >
                 <Menu className="w-5 h-5" />
               </button>
+              
+              {/* Mobile Header Title */}
+              <div className="md:hidden flex items-center gap-3">
+                 <img src={user.avatar} className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200" alt="Profile" />
+                 <div>
+                    <h1 className="text-sm font-bold text-gray-800">Halo, {user.name.split(' ')[0]}</h1>
+                    <p className="text-[10px] text-gray-500 uppercase font-semibold tracking-wide">Administrator</p>
+                 </div>
+              </div>
+
               <div className="relative hidden md:block">
                 <input 
                   type="text" 
@@ -117,39 +282,41 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             </div>
 
             <div className="flex items-center gap-3 sm:gap-5">
-              <button onClick={() => handleNavClick('mailbox')} className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={() => handleNavClick('mailbox')} className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors hidden md:block">
                 <Mail className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-green-500 rounded-full border border-white"></span>
               </button>
-              <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-              </button>
               
-              <div className="h-8 w-px bg-gray-200 mx-1"></div>
-
-              <div className="flex items-center gap-3 cursor-pointer group relative">
+              {/* Desktop Profile Dropdown */}
+              <div className="hidden md:flex items-center gap-3 cursor-pointer group relative">
                  <div className="text-right hidden sm:block">
                     <p className="text-sm font-bold text-gray-700">{user.name}</p>
                     <p className="text-xs text-gray-400">Administrator</p>
                  </div>
-                 <img src={user.avatar} alt="Profile" className="w-9 h-9 rounded-full border border-gray-200 group-hover:border-brand-500 transition-all" />
+                 <img src={user.avatar} alt="Profile" className="w-9 h-9 rounded-full border border-gray-200 group-hover:border-brand-500 transition-all object-cover" />
                  <ChevronDown className="w-4 h-4 text-gray-400" />
 
-                 {/* Dropdown Logout */}
                  <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all transform origin-top-right z-50">
                     <button onClick={logout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                        <LogOut className="w-4 h-4" /> Sign Out
                     </button>
                  </div>
               </div>
+
+              {/* Mobile Logout (Header) */}
+              <button onClick={logout} className="md:hidden p-2 text-gray-400 hover:bg-gray-100 rounded-full">
+                  <LogOut className="w-5 h-5 text-red-500" />
+              </button>
             </div>
           </header>
 
           {/* Content Scroll Area */}
-          <main className="flex-1 overflow-y-auto bg-[#f3f4f6] p-4 sm:p-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto bg-[#f3f4f6] p-4 sm:p-6 lg:p-8 pb-32 md:pb-8">
              {children}
           </main>
+
+          {/* Mobile Bottom Nav */}
+          <MobileBottomNav />
         </div>
       </div>
     );
@@ -159,22 +326,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
   const getRoleDisplay = () => {
     switch(user?.role) {
       case Role.PRINCIPAL:
-        // Principal Logic: Change title based on view
-        if (currentView === 'reports') {
-            return { title: 'Laporan Resmi', icon: FileText, desc: 'Laporan bulanan standar kementrian.' };
-        }
+        if (currentView === 'reports') return { title: 'Laporan Resmi', icon: FileText, desc: 'Laporan bulanan standar kementrian.' };
         return { title: 'Dashboard Eksekutif', icon: Briefcase, desc: 'Monitoring performa sekolah.' };
       case Role.COUNSELOR:
-        if (currentView === 'counselor-reports') {
-            return { title: 'Laporan Bimbingan Konseling', icon: FileText, desc: 'Administrasi kasus & pemanggilan orang tua.' };
-        }
+        if (currentView === 'counselor-reports') return { title: 'Laporan Bimbingan', icon: FileText, desc: 'Administrasi kasus & pemanggilan.' };
         return { title: 'Monitoring Konseling', icon: HeartHandshake, desc: 'Pantau kedisiplinan siswa.' };
       case Role.TEACHER:
-        // Teacher Logic: Change title based on view
-        if (currentView === 'teacher-reports') {
-            return { title: 'Laporan Guru', icon: FileText, desc: 'Rekap kehadiran & jurnal.' };
-        }
-        return { title: 'Input Absensi', icon: ClipboardList, desc: 'Silakan isi kehadiran siswa untuk mata pelajaran Anda.' };
+        if (currentView === 'teacher-reports') return { title: 'Laporan Guru', icon: FileText, desc: 'Rekap kehadiran & jurnal.' };
+        return { title: 'Input Absensi', icon: ClipboardList, desc: 'Silakan isi kehadiran siswa.' };
       default:
         return { title: 'Panel Guru', icon: ClipboardList, desc: '' };
     }
@@ -189,8 +348,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      {/* Top Navbar (Desktop Only) */}
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm hidden md:block">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleStandardNav('dashboard')}>
@@ -199,109 +358,46 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                 alt="Logo SMK" 
                 className="w-10 h-10 object-contain drop-shadow-sm"
               />
-              <div className="hidden md:block">
+              <div>
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">Sistem Absensi</h1>
                 <p className="text-sm text-gray-500 font-medium tracking-wide">SMK EL MOSTHOFA</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              
-              {/* TEACHER NAVIGATION (Menu Tabs) */}
-              {user?.role === Role.TEACHER && (
-                  <div className="hidden md:flex bg-gray-100 rounded-lg p-1 mr-4">
-                      <button 
-                        onClick={() => handleStandardNav('dashboard')}
-                        className={clsx(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
-                            currentView === 'dashboard' || !currentView ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
-                        )}
-                      >
-                        <ClipboardList className="w-4 h-4" /> Input Absen
-                      </button>
-                      <button 
-                        onClick={() => handleStandardNav('teacher-reports')}
-                        className={clsx(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
-                            currentView === 'teacher-reports' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
-                        )}
-                      >
-                        <FileText className="w-4 h-4" /> Laporan
-                      </button>
-                  </div>
-              )}
-
-              {/* COUNSELOR NAVIGATION (Menu Tabs) */}
-              {user?.role === Role.COUNSELOR && (
-                  <div className="hidden md:flex bg-gray-100 rounded-lg p-1 mr-4">
-                      <button 
-                        onClick={() => handleStandardNav('dashboard')}
-                        className={clsx(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
-                            currentView === 'dashboard' || !currentView ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
-                        )}
-                      >
-                        <HeartHandshake className="w-4 h-4" /> Monitoring
-                      </button>
-                      <button 
-                        onClick={() => handleStandardNav('counselor-reports')}
-                        className={clsx(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
-                            currentView === 'counselor-reports' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
-                        )}
-                      >
-                        <Printer className="w-4 h-4" /> Laporan & Surat
-                      </button>
-                  </div>
-              )}
-
-              {/* PRINCIPAL NAVIGATION (Menu Tabs) - NEW */}
-              {user?.role === Role.PRINCIPAL && (
-                  <div className="hidden md:flex bg-gray-100 rounded-lg p-1 mr-4">
-                      <button 
-                        onClick={() => handleStandardNav('dashboard')}
-                        className={clsx(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
-                            currentView === 'dashboard' || !currentView ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
-                        )}
-                      >
-                        <LayoutDashboard className="w-4 h-4" /> Dashboard
-                      </button>
-                      <button 
-                        onClick={() => handleStandardNav('reports')}
-                        className={clsx(
-                            "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
-                            currentView === 'reports' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
-                        )}
-                      >
-                        <FileText className="w-4 h-4" /> Laporan Resmi
-                      </button>
-                  </div>
-              )}
+              {/* Desktop Menu Tabs */}
+              <div className="flex bg-gray-100 rounded-lg p-1 mr-4">
+                  <button 
+                    onClick={() => handleStandardNav('dashboard')}
+                    className={clsx(
+                        "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                        (currentView === 'dashboard' || !currentView) ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                    )}
+                  >
+                    {user?.role === Role.TEACHER ? <ClipboardList className="w-4 h-4"/> : <LayoutDashboard className="w-4 h-4"/>} 
+                    {user?.role === Role.TEACHER ? "Input Absen" : "Dashboard"}
+                  </button>
+                  <button 
+                    onClick={() => handleStandardNav(user?.role === Role.COUNSELOR ? 'counselor-reports' : user?.role === Role.PRINCIPAL ? 'reports' : 'teacher-reports')}
+                    className={clsx(
+                        "px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
+                        (currentView === 'teacher-reports' || currentView === 'counselor-reports' || currentView === 'reports') ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                    )}
+                  >
+                    <FileText className="w-4 h-4" /> Laporan
+                  </button>
+              </div>
 
               <div className="flex items-center gap-2">
                 <div className="text-right hidden sm:block">
-                  <div className="text-sm font-medium text-gray-700">
-                    {user?.name}
-                  </div>
+                  <div className="text-sm font-medium text-gray-700">{user?.name}</div>
                   <div className="text-xs text-gray-400 font-medium">
-                   {user?.role === Role.TEACHER ? 'Guru Mapel' : 
-                    user?.role === Role.COUNSELOR ? 'Guru BK' : 'Kepala Sekolah'}
+                   {user?.role === Role.TEACHER ? 'Guru Mapel' : user?.role === Role.COUNSELOR ? 'Guru BK' : 'Kepala Sekolah'}
                   </div>
                 </div>
-                {user?.avatar ? (
-                  <img src={user.avatar} alt="Avatar" className="w-9 h-9 rounded-full border border-gray-200" />
-                ) : (
-                  <div className="w-9 h-9 bg-brand-100 rounded-full flex items-center justify-center text-brand-700 font-bold">
-                    {user?.name.charAt(0)}
-                  </div>
-                )}
+                <img src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}`} alt="Avatar" className="w-9 h-9 rounded-full border border-gray-200" />
               </div>
-              <button 
-                onClick={logout}
-                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                title="Logout"
-              >
+              <button onClick={logout} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Logout">
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
@@ -309,94 +405,38 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
         </div>
       </nav>
 
+      {/* Mobile Header (Minimal) */}
+      <div className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
+           <div className="flex items-center gap-3">
+               <img src={user?.avatar} className="w-9 h-9 rounded-full border border-gray-100 object-cover" alt="Profile" />
+               <div>
+                   <h2 className="text-sm font-bold text-gray-800">{user?.name}</h2>
+                   <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{user?.role}</p>
+               </div>
+           </div>
+           <button onClick={logout} className="p-2 bg-gray-50 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50">
+               <LogOut className="w-4 h-4" />
+           </button>
+      </div>
+
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-32 md:pb-8">
         
-        {/* Mobile Nav for Teachers */}
-        {user?.role === Role.TEACHER && (
-            <div className="md:hidden mb-6 flex gap-2">
-                 <button 
-                    onClick={() => handleStandardNav('dashboard')}
-                    className={clsx(
-                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
-                        currentView === 'dashboard' || !currentView ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
-                    )}
-                 >
-                    <ClipboardList className="w-4 h-4" /> Input
-                 </button>
-                 <button 
-                    onClick={() => handleStandardNav('teacher-reports')}
-                    className={clsx(
-                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
-                        currentView === 'teacher-reports' ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
-                    )}
-                 >
-                    <FileText className="w-4 h-4" /> Laporan
-                 </button>
-            </div>
-        )}
-
-        {/* Mobile Nav for Counselors */}
-        {user?.role === Role.COUNSELOR && (
-            <div className="md:hidden mb-6 flex gap-2">
-                 <button 
-                    onClick={() => handleStandardNav('dashboard')}
-                    className={clsx(
-                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
-                        currentView === 'dashboard' || !currentView ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
-                    )}
-                 >
-                    <HeartHandshake className="w-4 h-4" /> Monitoring
-                 </button>
-                 <button 
-                    onClick={() => handleStandardNav('counselor-reports')}
-                    className={clsx(
-                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
-                        currentView === 'counselor-reports' ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
-                    )}
-                 >
-                    <Printer className="w-4 h-4" /> Surat
-                 </button>
-            </div>
-        )}
-
-        {/* Mobile Nav for Principal - NEW */}
-        {user?.role === Role.PRINCIPAL && (
-            <div className="md:hidden mb-6 flex gap-2">
-                 <button 
-                    onClick={() => handleStandardNav('dashboard')}
-                    className={clsx(
-                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
-                        currentView === 'dashboard' || !currentView ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
-                    )}
-                 >
-                    <LayoutDashboard className="w-4 h-4" /> Dash
-                 </button>
-                 <button 
-                    onClick={() => handleStandardNav('reports')}
-                    className={clsx(
-                        "flex-1 py-2 rounded-lg border text-sm font-bold flex justify-center items-center gap-2",
-                        currentView === 'reports' ? "bg-brand-50 border-brand-200 text-brand-700" : "bg-white border-gray-200 text-gray-500"
-                    )}
-                 >
-                    <FileText className="w-4 h-4" /> Laporan
-                 </button>
-            </div>
-        )}
-
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Icon className="text-brand-600" /> {display.title}
           </h2>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 text-sm md:text-base">
             {display.desc}
           </p>
         </div>
         
         {children}
       </main>
+
+      <MobileBottomNav />
       
-      <footer className="bg-white border-t py-6 mt-auto">
+      <footer className="bg-white border-t py-6 mt-auto hidden md:block">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-400">
           &copy; {new Date().getFullYear()} SMK EL MOSTHOFA Pamekasan Madura.
         </div>
