@@ -3,36 +3,99 @@
  * MODULE: LAPORAN & TRANSAKSI
  */
 
+/**
+ * SAVE ATTENDANCE (UPSERT MODE)
+ * Cek apakah data sudah ada untuk siswa tsb di tanggal & mapel yang sama.
+ * Jika ada -> Update. Jika tidak -> Append.
+ */
 function saveAttendance(payload) {
   const sheet = getSheetOrSetup(SHEETS.ATTENDANCE);
-  const records = payload.records;
+  const data = sheet.getDataRange().getValues(); // Ambil semua data untuk pengecekan
   const timestamp = new Date();
-  const logId = Utilities.getUuid();
   
-  const rows = records.map(record => [
-    logId,
-    payload.date,
-    payload.classId,
-    payload.subject,
-    payload.teacherId,
-    payload.topic,
-    record.studentId,
-    record.studentName,
-    record.status,
-    record.note,
-    timestamp
-  ]);
+  // Payload Data
+  const targetDate = payload.date.substring(0, 10); // YYYY-MM-DD
+  const targetClass = String(payload.classId).trim();
+  const targetSubject = String(payload.subject).trim();
+  const records = payload.records;
+
+  // 1. Map Existing Data Index (Untuk performa pencarian cepat)
+  // Key: Date_Class_Subject_StudentId -> Value: Row Index (1-based)
+  const existingMap = new Map();
   
-  if (rows.length > 0) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  // Skip header (i=1)
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const rDate = row[1] ? String(row[1]).substring(0, 10) : '';
+    const rClass = String(row[2]).trim();
+    const rSubject = String(row[3]).trim();
+    const rStudentId = String(row[6]).trim(); // Index 6 is studentId based on header
+    
+    // Buat Unique Key
+    const key = `${rDate}_${rClass}_${rSubject}_${rStudentId}`;
+    existingMap.set(key, i + 1); // Simpan nomor baris
   }
-  return { message: 'Absensi disimpan.' };
+
+  const newRows = [];
+  const updates = [];
+
+  // 2. Process Records
+  records.forEach(record => {
+    const key = `${targetDate}_${targetClass}_${targetSubject}_${String(record.studentId).trim()}`;
+    
+    if (existingMap.has(key)) {
+      // UPDATE: Jika data sudah ada, simpan info untuk batch update nanti
+      const rowIndex = existingMap.get(key);
+      updates.push({
+        rowIndex: rowIndex,
+        status: record.status,
+        note: record.note,
+        topic: payload.topic,
+        timestamp: timestamp
+      });
+    } else {
+      // INSERT: Jika belum ada, masukkan ke antrian baris baru
+      // Generate Log ID baru jika perlu, atau gunakan yang sama untuk satu batch
+      const logId = Utilities.getUuid(); 
+      newRows.push([
+        logId,
+        payload.date,
+        payload.classId,
+        payload.subject,
+        payload.teacherId,
+        payload.topic,
+        record.studentId,
+        record.studentName,
+        record.status,
+        record.note,
+        timestamp
+      ]);
+    }
+  });
+
+  // 3. Execute Updates (Batch writing is hard for scattered rows, so we loop setValue for updates)
+  // Note: setValue per row is slower, but acceptable for delta updates (auto-save usually updates 1-5 rows or inserts all)
+  updates.forEach(u => {
+    // Kolom Status (Index 9 / Col I), Note (Index 10 / Col J), Topic (Index 6 / Col F), Timestamp (Index 11 / Col K)
+    // Sesuaikan dengan urutan Header di Pengaturan.js: 
+    // ['log_id', 'date', 'classId', 'subject', 'teacherId', 'topic', 'studentId', 'studentName', 'status', 'note', 'timestamp']
+    // 1-based index: Topic=6, Status=9, Note=10, Timestamp=11
+    
+    sheet.getRange(u.rowIndex, 6).setValue(u.topic);
+    sheet.getRange(u.rowIndex, 9).setValue(u.status);
+    sheet.getRange(u.rowIndex, 10).setValue(u.note);
+    sheet.getRange(u.rowIndex, 11).setValue(u.timestamp);
+  });
+
+  // 4. Execute Inserts (Batch Append is fast)
+  if (newRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+  }
+
+  return { message: 'Data synced successfully', updated: updates.length, inserted: newRows.length };
 }
 
-/**
- * FETCH PRINCIPAL REPORT DATA (FIX)
- * Pastikan Sakit (Sick) dan Izin (Permission) terhitung.
- */
+// ... (Sisa fungsi lainnya tetap sama: fetchPrincipalReportData, getTeacherHistory, dll)
 function fetchPrincipalReportData(payload) {
   const attendance = getData(SHEETS.ATTENDANCE);
   const students = getData(SHEETS.STUDENTS);
@@ -40,7 +103,6 @@ function fetchPrincipalReportData(payload) {
   const targetMonth = parseInt(payload.month);
   const targetYear = parseInt(payload.year);
   
-  // Filter by Month/Year
   const monthlyLogs = attendance.filter(log => {
     if (!log.date) return false;
     const d = new Date(log.date);
@@ -51,7 +113,7 @@ function fetchPrincipalReportData(payload) {
   
   monthlyLogs.forEach(log => {
     totalRecords++;
-    const s = String(log.status).toLowerCase(); // Case insensitive check
+    const s = String(log.status).toLowerCase(); 
     if (s === 'hadir') totalPresence++;
     else if (s === 'alpha') totalAlpha++;
     else if (s === 'sakit') totalSick++;
@@ -60,7 +122,6 @@ function fetchPrincipalReportData(payload) {
   
   const avgAttendance = totalRecords > 0 ? (totalPresence / totalRecords) * 100 : 0;
   
-  // Aggregates for Classes
   const classMap = {};
   monthlyLogs.forEach(log => {
     const cls = log.classId || 'Unknown';
@@ -79,10 +140,9 @@ function fetchPrincipalReportData(payload) {
     };
   }).sort((a, b) => b.percentage - a.percentage);
 
-  // Grade Comparison
   const gradeMap = { '10': {t:0, p:0}, '11': {t:0, p:0}, '12': {t:0, p:0} };
   monthlyLogs.forEach(log => {
-    let grade = '10'; // Default logic simplification
+    let grade = '10'; 
     if (log.classId.includes('11') || log.classId.includes('XI')) grade = '11';
     if (log.classId.includes('12') || log.classId.includes('XII')) grade = '12';
     
@@ -110,55 +170,48 @@ function fetchPrincipalReportData(payload) {
   };
 }
 
-/**
- * FETCH TEACHER HISTORY (Jurnal Mengajar)
- * Updated: Include details if needed
- */
 function getTeacherHistory(teacherId) {
   const attendance = getData(SHEETS.ATTENDANCE);
-  // Filter by teacherId
   const myLogs = attendance.filter(r => r.teacherId === teacherId);
   
   const groupedLogs = {};
   myLogs.forEach(row => {
-    if (!groupedLogs[row.log_id]) {
-      groupedLogs[row.log_id] = {
-        logId: row.log_id,
+    // Gunakan composite key untuk grouping jika log_id tidak konsisten saat manual insert
+    // Tapi idealnya log_id konsisten. Fallback ke date+class
+    const key = row.log_id || `${row.date}_${row.classId}_${row.subject}`;
+    
+    if (!groupedLogs[key]) {
+      groupedLogs[key] = {
+        logId: key,
         date: row.date,
         className: row.classId,
         subject: row.subject,
         topic: row.topic,
         studentCount: 0,
-        notesSample: [], // Collect notes
+        notesSample: [], 
         timestamp: row.timestamp
       };
     }
-    groupedLogs[row.log_id].studentCount++;
-    // Add non-empty notes
+    groupedLogs[key].studentCount++;
     if (row.note && row.note !== '-') {
-       groupedLogs[row.log_id].notesSample.push(`${row.studentName}: ${row.note}`);
+       groupedLogs[key].notesSample.push(`${row.studentName}: ${row.note}`);
     }
   });
   
   return Object.values(groupedLogs).sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-// ... include other existing functions like fetchSemesterRecap etc ...
 function fetchSemesterRecap(payload) {
-    // Existing implementation ...
-    // (Ensure this is kept as per original file, just focused on changed parts above)
-    // Placeholder to keep file valid:
     const { classId, semester, year } = payload;
     const students = getData(SHEETS.STUDENTS).filter(s => s.className === classId);
     if (students.length === 0) return [];
     const attendance = getData(SHEETS.ATTENDANCE);
     
-    // Simplified Logic
     const recapMap = {};
     students.forEach(s => recapMap[s.id] = { ...s, sick:0, permission:0, alpha:0, present:0, totalMeetings:0 });
     
     attendance.forEach(log => {
-        if (recapMap[log.studentId] && log.classId === classId) { // Check ClassID match
+        if (recapMap[log.studentId] && log.classId === classId) { 
              const stats = recapMap[log.studentId];
              stats.totalMeetings++;
              const s = String(log.status).toLowerCase();
@@ -181,7 +234,5 @@ function getStudentAttendanceHistory(studentId) {
 }
 
 function getCounselingReportData() {
-  // Re-used from Konseling.md logic, ensuring it's available here or in Konseling.gs
-  // Just a placeholder to ensure file completeness
   return []; 
 }

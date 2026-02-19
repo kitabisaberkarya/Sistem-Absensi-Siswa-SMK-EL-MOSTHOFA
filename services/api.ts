@@ -28,7 +28,7 @@ export interface FullAttendanceLog {
 
 // --- CONFIGURATION ---
 // URL Deployment Google Apps Script (Web App)
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywUxDx3E2wXmishI9C0iTDJj2eugqxk0hZIaxibNcfdDEoxffuxctd3mDkIarWjsxlyw/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzbYpVT3yTewY9AqWWUFJVb-mMalXuEfdcgOzjL_ty8TYGGgL3iTyUa8oDm_vCyjaR-rA/exec';
 
 // FetchScript Implementation
 const fetchScript = async (action: string, params: any = {}, useCache = false): Promise<any> => {

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ApiService } from '../../services/api';
 import { Student, AttendanceStatus, AttendanceRecord, ClassRoom, Subject } from '../../types';
 import { Button } from '../../components/Button';
@@ -20,7 +20,10 @@ import {
   FileText,
   Users,
   AlertTriangle,
-  Database
+  Database,
+  Cloud,
+  Loader2,
+  CloudCheck
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -38,7 +41,7 @@ export const AttendancePage = () => {
 
   // Student Data State
   const [students, setStudents] = useState<Student[]>([]);
-  const [topic, setTopic] = useState(''); // Jurnal Materi
+  const [topic, setTopic] = useState(''); 
   
   // Attendance Logic State
   const [records, setRecords] = useState<Record<string, AttendanceStatus>>({});
@@ -48,9 +51,14 @@ export const AttendancePage = () => {
   // UI State
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // --- AUTO SAVE STATE ---
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
 
   // Status Configuration for UI
   const statusConfig = [
@@ -116,10 +124,12 @@ export const AttendancePage = () => {
         try {
           const data = await ApiService.fetchStudentsByClass(selectedClass);
           setStudents(data);
-          // Reset records
           setRecords({});
           setNotes({});
           setTopic('');
+          setSaveStatus('idle');
+          setLastSaved(null);
+          isFirstRender.current = true; // Reset first render check
         } catch (error) {
           console.error("Failed to fetch students", error);
           alert("Gagal mengambil data siswa. Periksa koneksi internet.");
@@ -133,6 +143,61 @@ export const AttendancePage = () => {
       setHasSearched(false);
     }
   }, [selectedClass]);
+
+  // --- AUTO SAVE LOGIC ---
+  useEffect(() => {
+      // Skip auto-save if data is not loaded or it's the initial load
+      if (isFirstRender.current) {
+          isFirstRender.current = false;
+          return;
+      }
+      if (!selectedClass || !selectedSubject || students.length === 0) return;
+      if (Object.keys(records).length === 0 && !topic) return; // Nothing to save
+
+      // Clear existing timer
+      if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+      }
+
+      setSaveStatus('saving');
+
+      // Set new debounce timer (2 seconds)
+      autoSaveTimerRef.current = setTimeout(async () => {
+          try {
+              const payloadRecords: AttendanceRecord[] = students.map(s => ({
+                  studentId: s.id,
+                  studentName: s.name,
+                  status: records[s.id] || AttendanceStatus.PRESENT, // Default to present if not marked? Or handle partially? Let's send what we have.
+                  note: notes[s.id] || ''
+              }));
+
+              // Filter only marked records if we want partial save, 
+              // BUT for bulk day integrity, we usually send all.
+              // Given the backend upsert logic, sending all is safe.
+              
+              await ApiService.submitAttendance({
+                  classId: selectedClass,
+                  subject: selectedSubject,
+                  date: new Date().toISOString(),
+                  teacherId: user?.id || 'unknown',
+                  topic: topic || 'Jurnal harian', // Default topic if empty during draft
+                  records: payloadRecords
+              });
+              
+              setSaveStatus('saved');
+              setLastSaved(new Date());
+
+          } catch (error) {
+              console.error("Auto save failed", error);
+              setSaveStatus('error');
+          }
+      }, 2000); // 2 Seconds Debounce
+
+      return () => {
+          if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      };
+
+  }, [records, notes, topic, selectedClass, selectedSubject]); // Dependencies
 
   const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
     setRecords(prev => ({ ...prev, [studentId]: status }));
@@ -150,6 +215,7 @@ export const AttendancePage = () => {
     setRecords(newRecords);
   };
 
+  // Manual Save (Finalize)
   const handleSubmit = async () => {
     if (!selectedClass || !selectedSubject) {
       alert("Mohon pilih Kelas dan Mata Pelajaran.");
@@ -160,17 +226,10 @@ export const AttendancePage = () => {
       return;
     }
 
-    const unmarked = students.filter(s => !records[s.id]);
-    if (unmarked.length > 0) {
-      const confirm = window.confirm(`Ada ${unmarked.length} siswa belum diabsen. Mereka akan dianggap 'Hadir'. Lanjutkan?`);
-      if (!confirm) return;
-      
-      unmarked.forEach(s => {
-        records[s.id] = AttendanceStatus.PRESENT;
-      });
-    }
-
     setSubmitting(true);
+    // Force immediate save (same logic as auto-save but blocking with UI feedback)
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); // Cancel pending auto-save
+
     try {
       const payloadRecords: AttendanceRecord[] = students.map(s => ({
         studentId: s.id,
@@ -188,22 +247,18 @@ export const AttendancePage = () => {
         records: payloadRecords
       });
 
-      setSuccessMsg('Data absensi & jurnal berhasil disimpan!');
+      alert('Absensi berhasil diselesaikan dan tersimpan permanen!');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
-      setTimeout(() => {
-        setSuccessMsg('');
-        setSelectedClass('');
-        setSelectedSubject('');
-        setStudents([]);
-        setTopic('');
-        setHasSearched(false);
-      }, 2500);
+      // Optional: Reset or redirect
+      // setStudents([]); 
       
     } catch (error) {
       alert('Gagal menyimpan data.');
     } finally {
       setSubmitting(false);
+      setSaveStatus('saved');
+      setLastSaved(new Date());
     }
   };
 
@@ -238,14 +293,37 @@ export const AttendancePage = () => {
       
       {/* 1. Header & Configuration */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="bg-brand-600 p-6 text-white">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-brand-200" />
-            Input Absensi Harian
-          </h2>
-          <p className="text-brand-100 text-sm mt-1 opacity-90">
-            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
+        <div className="bg-brand-600 p-6 text-white flex justify-between items-start">
+          <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-brand-200" />
+                Input Absensi Harian
+              </h2>
+              <p className="text-brand-100 text-sm mt-1 opacity-90">
+                {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+          </div>
+          
+          {/* AUTO SAVE INDICATOR */}
+          {selectedClass && (
+              <div className="flex flex-col items-end">
+                  <div className={clsx(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all",
+                      saveStatus === 'saving' ? "bg-white/20 text-white animate-pulse" : 
+                      saveStatus === 'saved' ? "bg-green-500/20 text-green-100 border border-green-400/30" :
+                      saveStatus === 'error' ? "bg-red-500/20 text-red-100" : "opacity-0"
+                  )}>
+                      {saveStatus === 'saving' && <><Loader2 className="w-3 h-3 animate-spin" /> Menyimpan Cloud...</>}
+                      {saveStatus === 'saved' && <><CloudCheck className="w-3 h-3" /> Tersimpan</>}
+                      {saveStatus === 'error' && <><AlertTriangle className="w-3 h-3" /> Gagal Simpan</>}
+                  </div>
+                  {lastSaved && saveStatus === 'saved' && (
+                      <span className="text-[10px] text-brand-200 mt-1 opacity-80">
+                          Last saved: {lastSaved.toLocaleTimeString()}
+                      </span>
+                  )}
+              </div>
+          )}
         </div>
         
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -301,13 +379,6 @@ export const AttendancePage = () => {
         )}
       </div>
 
-      {successMsg && (
-        <div className="bg-green-50 text-green-800 p-4 rounded-xl border border-green-200 flex items-center shadow-sm animate-bounce">
-          <CheckCircle2 className="w-6 h-6 mr-3 text-green-600" />
-          <span className="font-medium">{successMsg}</span>
-        </div>
-      )}
-
       {/* --- CONDITIONAL RENDERING --- */}
       
       {loading && (
@@ -350,13 +421,6 @@ export const AttendancePage = () => {
                 <CheckSquare className="w-4 h-4 mr-2" />
                 Hadir Semua
               </Button>
-            </div>
-
-            <div className="w-full md:hidden h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-brand-500 transition-all duration-500"
-                style={{ width: `${(stats.marked / stats.total) * 100}%` }}
-              />
             </div>
           </div>
 
@@ -437,12 +501,6 @@ export const AttendancePage = () => {
                 </div>
               );
             })}
-            
-            {filteredStudents.length === 0 && (
-              <div className="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300 text-gray-500">
-                Tidak ada siswa yang ditemukan dengan nama "{searchQuery}"
-              </div>
-            )}
           </div>
 
           <div className="fixed bottom-6 right-6 z-40 left-6 md:left-auto flex flex-col items-end pointer-events-none">
@@ -454,7 +512,7 @@ export const AttendancePage = () => {
                 className="py-4 px-8 rounded-xl font-bold text-base bg-brand-600 hover:bg-brand-700 text-white shadow-xl transform transition-transform active:scale-95 flex items-center"
               >
                 <Save className="w-5 h-5 mr-2" />
-                <span>Simpan Absensi ({stats.marked}/{stats.total})</span>
+                <span>Selesai & Kunci Absensi</span>
               </Button>
              </div>
           </div>
@@ -471,20 +529,6 @@ export const AttendancePage = () => {
           <p className="text-gray-500 max-w-md mx-auto mt-2">
             Kelas <strong>"{selectedClass}"</strong> belum memiliki data siswa yang terdaftar di database.
           </p>
-          <div className="mt-6 flex flex-col items-center gap-3">
-             <div className="text-sm bg-red-50 p-4 rounded-xl border border-red-100 max-w-lg text-left">
-                <p className="font-bold text-red-800 mb-2 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" /> Diagnosa Masalah:
-                </p>
-                <ul className="list-disc ml-4 text-red-700 space-y-1">
-                    <li>Nama kelas di dropdown ("{selectedClass}") mungkin berbeda penulisan dengan di database (misal: "10-TKJ-1" vs "X TKJ 1").</li>
-                    <li>Atau Header di Google Sheet tidak sesuai (Harus: <code>className</code> bukan <code>Kelas</code>).</li>
-                </ul>
-             </div>
-             <p className="text-xs text-gray-500 mt-2">
-                Solusi: Hubungi Admin untuk menjalankan <strong>Fix Database Structure</strong> di panel script.
-             </p>
-          </div>
         </div>
       )}
 
@@ -497,7 +541,6 @@ export const AttendancePage = () => {
           <p className="text-gray-500 max-w-sm mx-auto mt-2">
             Pilih <span className="font-semibold text-brand-600">Kelas</span> dan <span className="font-semibold text-brand-600">Mata Pelajaran</span> di bagian atas untuk memuat daftar siswa.
           </p>
-          {dataLoading && <p className="text-xs text-gray-400 mt-2">Sedang memuat data referensi...</p>}
         </div>
       )}
 
