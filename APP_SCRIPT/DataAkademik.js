@@ -46,18 +46,21 @@ function deleteSubject(id) {
 function importSubjects(subjectsList) {
   const sheet = getSheetOrSetup(SHEETS.SUBJECTS);
   const existingSubjects = getData(SHEETS.SUBJECTS);
-  const existingCodes = new Set(existingSubjects.map(s => String(s.code).toUpperCase()));
+  const existingCodes = new Set(existingSubjects.map(s => s.code ? String(s.code).trim().toUpperCase() : ''));
   
   const newRows = [];
   let count = 0;
+  const timestamp = Date.now();
   
-  subjectsList.forEach(s => {
-    const code = String(s.code).trim().toUpperCase();
-    if (code && !existingCodes.has(code)) {
+  subjectsList.forEach((s, index) => {
+    const code = s.code ? String(s.code).trim().toUpperCase() : '';
+    const name = s.name ? String(s.name).trim() : '';
+    
+    if (code && name && !existingCodes.has(code)) {
       newRows.push([
-        'SUB_' + Math.floor(Math.random()*100000),
+        'SUB_' + timestamp + '_' + index,
         code,
-        s.name,
+        name,
         s.category || 'Umum'
       ]);
       existingCodes.add(code);
@@ -68,7 +71,11 @@ function importSubjects(subjectsList) {
   if (newRows.length > 0) {
     sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
   }
-  return { success: true, message: `Imported ${count} subjects.`, count: count };
+  
+  // Invalidate cache
+  invalidateCaches([SHEETS.SUBJECTS]);
+  
+  return { success: true, message: `Berhasil mengimpor ${count} mata pelajaran.`, count: count };
 }
 
 // --- CLASSES ---

@@ -59,20 +59,22 @@ function getData(sheetName) {
   // Ambil header dan bersihkan dari spasi ekstra
   const headers = data.shift().map(h => String(h).trim()); 
   
-  return data.map(row => {
-    let obj = {};
-    headers.forEach((h, i) => {
-      // Map header value ke object key
-      // Jika header kosong, skip
-      if (h) {
-         obj[h] = row[i];
-         // Fallback alias (optional)
-         if (h === 'Kelas') obj['className'] = row[i];
-         if (h === 'Nama') obj['name'] = row[i];
-      }
+  return data
+    .filter(row => row.some(cell => cell !== "" && cell !== null)) // ABAIKAN BARIS KOSONG
+    .map(row => {
+      let obj = {};
+      headers.forEach((h, i) => {
+        // Map header value ke object key
+        // Jika header kosong, skip
+        if (h) {
+           obj[h] = row[i];
+           // Fallback alias (optional)
+           if (h === 'Kelas') obj['className'] = row[i];
+           if (h === 'Nama') obj['name'] = row[i];
+        }
+      });
+      return obj;
     });
-    return obj;
-  });
 }
 
 function logSystem(user, action) {

@@ -24,6 +24,9 @@ export const ReportsPage = () => {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
   // Semester Recap State
+  const [recapType, setRecapType] = useState<'daily' | 'weekly' | 'monthly' | 'semester'>('semester');
+  const [recapDate, setRecapDate] = useState(new Date().toISOString().split('T')[0]);
+  const [recapMonth, setRecapMonth] = useState(new Date().getMonth().toString());
   const [semClass, setSemClass] = useState('');
   const [semPeriod, setSemPeriod] = useState<'Ganjil'|'Genap'>('Ganjil');
   const [semYear, setSemYear] = useState(new Date().getFullYear().toString());
@@ -59,19 +62,32 @@ export const ReportsPage = () => {
       finally { setIsLoadingLogs(false); }
   };
 
-  const fetchSemesterRecap = async () => {
+  const fetchRecap = async () => {
       if (!semClass) {
           alert("Mohon pilih kelas terlebih dahulu.");
           return;
       }
       setIsRecapLoading(true);
       try {
-          const academicYearStr = `${semYear}/${parseInt(semYear) + 1}`;
-          const data = await ApiService.fetchSemesterRecap(semClass, semPeriod, academicYearStr);
+          const payload: any = {
+              classId: semClass,
+              type: recapType,
+              year: semYear
+          };
+
+          if (recapType === 'daily' || recapType === 'weekly') {
+              payload.date = recapDate;
+          } else if (recapType === 'monthly') {
+              payload.month = parseInt(recapMonth);
+          } else if (recapType === 'semester') {
+              payload.semester = semPeriod;
+          }
+
+          const data = await ApiService.fetchRecap(payload);
           setRecapData(data.sort((a, b) => a.name.localeCompare(b.name)));
       } catch (e) {
           console.error(e);
-          alert("Gagal mengambil data rekap semester.");
+          alert("Gagal mengambil data rekap.");
       } finally {
           setIsRecapLoading(false);
       }
@@ -86,8 +102,14 @@ export const ReportsPage = () => {
 
   const handleExportPDF = () => {
       if (recapData.length === 0) return;
+      const titleMap = {
+          daily: 'LAPORAN PRESENSI HARIAN',
+          weekly: 'LAPORAN PRESENSI MINGGUAN',
+          monthly: 'LAPORAN PRESENSI BULANAN',
+          semester: 'LAPORAN PRESENSI SEMESTER'
+      };
       ReportService.generateSemesterPDF({
-          title: `LAPORAN PRESENSI SEMESTER ${semPeriod.toUpperCase()}`,
+          title: `${titleMap[recapType]} ${recapType === 'semester' ? semPeriod.toUpperCase() : ''}`,
           subtitle: `TAHUN AJARAN ${semYear}/${parseInt(semYear) + 1} - KELAS ${semClass}`,
           date: new Date().toLocaleDateString('id-ID'),
           teacher: 'Administrator'
@@ -97,7 +119,7 @@ export const ReportsPage = () => {
   const handleExportExcel = () => {
       if (recapData.length === 0) return;
       ReportService.generateSemesterExcel({
-          title: `REKAP_ABSENSI_${semClass}_${semPeriod}_${semYear}`,
+          title: `REKAP_ABSENSI_${semClass}_${recapType}_${semYear}`,
           subtitle: `TAHUN AJARAN ${semYear}/${parseInt(semYear) + 1}`,
           date: new Date().toLocaleDateString('id-ID'),
           teacher: 'Administrator'
@@ -144,7 +166,7 @@ export const ReportsPage = () => {
                     activeTab === 'semester' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
                 )}
             >
-                <BookOpen className="w-4 h-4" /> Rekap Semester
+                <BookOpen className="w-4 h-4" /> Rekapitulasi Presensi
             </button>
         </div>
       </div>
@@ -241,14 +263,14 @@ export const ReportsPage = () => {
           </div>
       )}
 
-      {/* CONTENT: SEMESTER RECAP */}
+      {/* CONTENT: RECAP */}
       {activeTab === 'semester' && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
               
               {/* Filter Bar */}
               <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                  <div className="flex flex-col md:flex-row gap-4 items-end">
-                      <div className="w-full md:w-auto flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <div className="w-full">
                           <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Pilih Kelas</label>
                           <select 
                             className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all"
@@ -259,35 +281,78 @@ export const ReportsPage = () => {
                               {classList.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                           </select>
                       </div>
-                      
-                      <div className="w-full md:w-auto">
-                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Semester</label>
+
+                      <div className="w-full">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tipe Rekap</label>
                           <select 
                             className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
-                            value={semPeriod}
-                            onChange={(e) => setSemPeriod(e.target.value as any)}
+                            value={recapType}
+                            onChange={(e) => setRecapType(e.target.value as any)}
                           >
-                              <option value="Ganjil">Ganjil (Juli - Des)</option>
-                              <option value="Genap">Genap (Jan - Jun)</option>
+                              <option value="daily">Harian</option>
+                              <option value="weekly">Mingguan</option>
+                              <option value="monthly">Bulanan</option>
+                              <option value="semester">Semester</option>
                           </select>
                       </div>
+                      
+                      {recapType === 'daily' || recapType === 'weekly' ? (
+                        <div className="w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                                {recapType === 'daily' ? 'Pilih Tanggal' : 'Tanggal Mulai'}
+                            </label>
+                            <input 
+                                type="date"
+                                className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                                value={recapDate}
+                                onChange={(e) => setRecapDate(e.target.value)}
+                            />
+                        </div>
+                      ) : recapType === 'monthly' ? (
+                        <div className="w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Pilih Bulan</label>
+                            <select 
+                                className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                                value={recapMonth}
+                                onChange={(e) => setRecapMonth(e.target.value)}
+                            >
+                                {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, idx) => (
+                                    <option key={idx} value={idx}>{m}</option>
+                                ))}
+                            </select>
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Semester</label>
+                            <select 
+                                className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                                value={semPeriod}
+                                onChange={(e) => setSemPeriod(e.target.value as any)}
+                            >
+                                <option value="Ganjil">Ganjil (Juli - Des)</option>
+                                <option value="Genap">Genap (Jan - Jun)</option>
+                            </select>
+                        </div>
+                      )}
 
-                      <div className="w-full md:w-auto">
-                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tahun Ajaran Mulai</label>
+                      <div className="w-full">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tahun</label>
                           <select 
                             className="w-full border p-2.5 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none"
                             value={semYear}
                             onChange={(e) => setSemYear(e.target.value)}
                           >
-                              <option value="2024">2024/2025</option>
-                              <option value="2025">2025/2026</option>
-                              <option value="2026">2026/2027</option>
+                              <option value="2024">2024</option>
+                              <option value="2025">2025</option>
+                              <option value="2026">2026</option>
                           </select>
                       </div>
 
-                      <Button onClick={fetchSemesterRecap} isLoading={isRecapLoading} className="w-full md:w-auto h-[42px]">
-                          Tampilkan Data
-                      </Button>
+                      <div className="md:col-span-4 flex justify-end mt-2">
+                        <Button onClick={fetchRecap} isLoading={isRecapLoading} className="w-full md:w-auto h-[42px]">
+                            Tampilkan Data Rekap
+                        </Button>
+                      </div>
                   </div>
               </div>
 
@@ -296,9 +361,9 @@ export const ReportsPage = () => {
                   <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in">
                       <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                           <div>
-                              <h3 className="font-bold text-gray-800">Hasil Rekapitulasi</h3>
+                              <h3 className="font-bold text-gray-800">Hasil Rekapitulasi {recapType.toUpperCase()}</h3>
                               <p className="text-xs text-gray-500">
-                                  Kelas {semClass} • Semester {semPeriod} {semYear}/{parseInt(semYear)+1}
+                                  Kelas {semClass} • {recapType === 'semester' ? `Semester ${semPeriod}` : recapType === 'monthly' ? `Bulan ${parseInt(recapMonth)+1}` : recapDate}
                               </p>
                           </div>
                           <div className="flex gap-2">
@@ -359,7 +424,7 @@ export const ReportsPage = () => {
               {!isRecapLoading && recapData.length === 0 && semClass && (
                   <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-gray-400">
                       <FileText className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                      <p>Belum ada data untuk ditampilkan. Silakan pilih filter dan klik "Tampilkan Data".</p>
+                      <p>Belum ada data untuk ditampilkan. Silakan pilih filter dan klik "Tampilkan Data Rekap".</p>
                   </div>
               )}
           </div>

@@ -201,31 +201,87 @@ function getTeacherHistory(teacherId) {
   return Object.values(groupedLogs).sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-function fetchSemesterRecap(payload) {
-    const { classId, semester, year } = payload;
-    const students = getData(SHEETS.STUDENTS).filter(s => s.className === classId);
-    if (students.length === 0) return [];
-    const attendance = getData(SHEETS.ATTENDANCE);
+function fetchRecap(payload) {
+    const { classId, type, date, month, year, semester } = payload;
+    const students = getData(SHEETS.STUDENTS).filter(s => {
+        const sClass = s.className || s.Kelas || s.kelas || '';
+        return String(sClass).trim().toLowerCase() === String(classId).trim().toLowerCase();
+    });
     
+    if (students.length === 0) return [];
+    
+    const attendance = getData(SHEETS.ATTENDANCE);
     const recapMap = {};
-    students.forEach(s => recapMap[s.id] = { ...s, sick:0, permission:0, alpha:0, present:0, totalMeetings:0 });
+    students.forEach(s => recapMap[s.id] = { 
+        studentId: s.id, 
+        name: s.name, 
+        nis: s.nis, 
+        gender: s.gender,
+        sick: 0, 
+        permission: 0, 
+        alpha: 0, 
+        present: 0, 
+        totalMeetings: 0 
+    });
+    
+    const targetYear = parseInt(year);
+    const targetMonth = parseInt(month); // 0-11
     
     attendance.forEach(log => {
-        if (recapMap[log.studentId] && log.classId === classId) { 
-             const stats = recapMap[log.studentId];
-             stats.totalMeetings++;
-             const s = String(log.status).toLowerCase();
-             if (s === 'hadir') stats.present++;
-             else if (s === 'sakit') stats.sick++;
-             else if (s === 'izin') stats.permission++;
-             else if (s === 'alpha') stats.alpha++;
+        if (!recapMap[log.studentId]) return;
+        
+        // Filter by Class
+        const logClass = log.classId || '';
+        if (String(logClass).trim().toLowerCase() !== String(classId).trim().toLowerCase()) return;
+        
+        const logDate = new Date(log.date);
+        let include = false;
+        
+        if (type === 'daily') {
+            const targetDateStr = String(date).substring(0, 10);
+            const logDateStr = logDate.toISOString().substring(0, 10);
+            if (logDateStr === targetDateStr) include = true;
+        } else if (type === 'weekly') {
+            // Simple weekly: 7 days from target date
+            const start = new Date(date);
+            const end = new Date(date);
+            end.setDate(end.getDate() + 7);
+            if (logDate >= start && logDate < end) include = true;
+        } else if (type === 'monthly') {
+            if (logDate.getMonth() === targetMonth && logDate.getFullYear() === targetYear) include = true;
+        } else if (type === 'semester') {
+            // Ganjil: July (6) - Dec (11), Genap: Jan (0) - June (5)
+            const m = logDate.getMonth();
+            const y = logDate.getFullYear();
+            if (semester === 'Ganjil') {
+                if (m >= 6 && m <= 11 && y === targetYear) include = true;
+            } else {
+                if (m >= 0 && m <= 5 && y === (targetYear + 1)) include = true;
+            }
+        }
+        
+        if (include) {
+            const stats = recapMap[log.studentId];
+            stats.totalMeetings++;
+            const s = String(log.status).toLowerCase();
+            if (s === 'hadir') stats.present++;
+            else if (s === 'sakit') stats.sick++;
+            else if (s === 'izin') stats.permission++;
+            else if (s === 'alpha') stats.alpha++;
         }
     });
     
     return Object.values(recapMap).map(stat => {
-        const total = stat.totalMeetings > 0 ? stat.totalMeetings : 1;
-        return { ...stat, percentage: parseFloat(((stat.present / total) * 100).toFixed(1)) };
+        const total = stat.totalMeetings > 0 ? stat.totalMeetings : 0;
+        const percentage = total > 0 ? parseFloat(((stat.present / total) * 100).toFixed(1)) : 0;
+        return { ...stat, percentage };
     });
+}
+
+function fetchSemesterRecap(payload) {
+    // Legacy wrapper for backward compatibility
+    payload.type = 'semester';
+    return fetchRecap(payload);
 }
 
 function getStudentAttendanceHistory(studentId) {

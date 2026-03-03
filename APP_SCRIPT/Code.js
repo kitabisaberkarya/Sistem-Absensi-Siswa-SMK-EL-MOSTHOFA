@@ -130,6 +130,7 @@ function executeReadAction(action, payload) {
       case 'fetchClasses': return getAllClasses();
 
       // Reports
+      case 'fetchRecap': return fetchRecap(payload);
       case 'fetchSemesterRecap': return fetchSemesterRecap(payload);
       case 'fetchTeacherHistory': return getTeacherHistory(payload.teacherId);
       case 'fetchStudentHistory': return getStudentAttendanceHistory(payload.studentId);

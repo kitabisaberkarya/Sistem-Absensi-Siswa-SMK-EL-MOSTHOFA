@@ -209,6 +209,17 @@ export const ApiService = {
     const data = await fetchScript('fetchSemesterRecap', { classId, semester, year });
     return (data || []) as SemesterRecapEntry[];
   },
+  fetchRecap: async (payload: { 
+    classId: string, 
+    type: 'daily' | 'weekly' | 'monthly' | 'semester',
+    date?: string,
+    month?: number,
+    year?: string,
+    semester?: string
+  }): Promise<SemesterRecapEntry[]> => {
+    const data = await fetchScript('fetchRecap', payload);
+    return (data || []) as SemesterRecapEntry[];
+  },
   fetchTeacherHistory: async (teacherId: string): Promise<TeacherHistoryLog[]> => {
     const data = await fetchScript('fetchTeacherHistory', { teacherId });
     return (data || []) as TeacherHistoryLog[];

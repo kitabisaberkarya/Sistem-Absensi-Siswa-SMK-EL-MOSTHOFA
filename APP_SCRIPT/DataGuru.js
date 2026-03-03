@@ -196,6 +196,7 @@ function importGlobalUsers(usersList) {
     // Create lookup sets for fast duplicate checking
     const registeredEmails = new Set(existingUsers.map(u => String(u.email || '').toLowerCase().trim()));
     const registeredNIPs = new Set(existingUsers.map(u => String(u.nip || '').trim()));
+    const registeredNames = new Set(existingUsers.map(u => String(u.name || '').toLowerCase().trim()));
 
     const newRows = [];
     let count = 0;
@@ -207,6 +208,7 @@ function importGlobalUsers(usersList) {
       const email = String(u.email).toLowerCase().trim();
       const nip = String(u.nip || '-').trim();
       const name = String(u.name).trim();
+      const nameLower = name.toLowerCase();
       
       // Basic Validation
       if (!email || !name) return; // Skip invalid rows
@@ -214,6 +216,7 @@ function importGlobalUsers(usersList) {
       // Duplicate Check
       if (registeredEmails.has(email)) return; // Skip duplicate email
       if (nip !== '-' && registeredNIPs.has(nip)) return; // Skip duplicate NIP
+      if (registeredNames.has(nameLower)) return; // Skip duplicate Name
 
       // Role Validation & Defaulting
       let role = String(u.role || 'TEACHER').toUpperCase().trim();
@@ -240,6 +243,7 @@ function importGlobalUsers(usersList) {
       // Update local sets to prevent duplicates within the upload file itself
       registeredEmails.add(email);
       if (nip !== '-') registeredNIPs.add(nip);
+      registeredNames.add(nameLower);
       count++;
     });
 

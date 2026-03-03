@@ -6,13 +6,15 @@
 function getStudentsByClass(className) {
   const students = getData(SHEETS.STUDENTS);
   if (!className) return [];
-  const normalize = (str) => String(str || '').toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
+  
+  // Normalisasi yang lebih cerdas: hapus spasi, simbol, dan case-insensitive
+  const normalize = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const target = normalize(className);
   
   return students.filter(s => {
-    const rawClass = s.className || s.Kelas || s.kelas || '';
-    const current = normalize(rawClass);
-    return current === target;
+    // Cek di berbagai kemungkinan nama kolom
+    const rawClass = s.className || s.Kelas || s.kelas || s.class || '';
+    return normalize(rawClass) === target;
   });
 }
 

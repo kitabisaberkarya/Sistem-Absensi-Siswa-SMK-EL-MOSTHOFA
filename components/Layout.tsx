@@ -246,6 +246,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             <button onClick={() => handleNavClick('settings')} className="w-full text-left">
               <NavItem icon={Settings} label="Pengaturan" active={currentView === 'settings'} isOpen={sidebarOpen} />
             </button>
+
+            <div className="pt-4 mt-4 border-t border-gray-600/30">
+              <button 
+                onClick={logout} 
+                className="w-full flex items-center px-4 py-3 rounded-r-full transition-all cursor-pointer group text-red-400 hover:text-white hover:bg-red-500/20"
+              >
+                <LogOut className="w-5 h-5 flex-shrink-0" />
+                {sidebarOpen && <span className="ml-3 text-sm font-medium tracking-wide">Keluar Aplikasi</span>}
+              </button>
+            </div>
           </nav>
         </aside>
 
