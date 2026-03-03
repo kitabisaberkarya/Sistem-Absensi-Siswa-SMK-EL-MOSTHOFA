@@ -28,10 +28,23 @@ export interface FullAttendanceLog {
 
 // --- CONFIGURATION ---
 // URL Deployment Google Apps Script (Web App)
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzbYpVT3yTewY9AqWWUFJVb-mMalXuEfdcgOzjL_ty8TYGGgL3iTyUa8oDm_vCyjaR-rA/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxFCdKcDy_qFvRTw4Qy5GmkBDAthhVnD3eerQtK8JeRS5lXe1Kxvo-YYunhnpVsfZP61A/exec';
+
+// --- SIMPLE FRONTEND CACHE ---
+const apiCache: Record<string, { data: any, timestamp: number }> = {};
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 menit
 
 // FetchScript Implementation
 const fetchScript = async (action: string, params: any = {}, useCache = false): Promise<any> => {
+  const cacheKey = `${action}_${JSON.stringify(params)}`;
+
+  if (useCache && apiCache[cacheKey]) {
+    const cached = apiCache[cacheKey];
+    if (Date.now() - cached.timestamp < CACHE_EXPIRY) {
+      console.log(`[Cache Hit] ${action}`);
+      return cached.data;
+    }
+  }
   
   // 1. GAS Environment (Sidebar/Modal inside Sheets)
   // @ts-ignore
@@ -41,6 +54,7 @@ const fetchScript = async (action: string, params: any = {}, useCache = false): 
       window.google.script.run
         .withSuccessHandler((response: any) => {
            if (response && response.status === 'success') {
+             if (useCache) apiCache[cacheKey] = { data: response.data, timestamp: Date.now() };
              resolve(response.data);
            } else if (response && response.status === 'error') {
              reject(new Error(response.message));
@@ -71,6 +85,14 @@ const fetchScript = async (action: string, params: any = {}, useCache = false): 
         const result = await response.json();
 
         if (result.status === 'success') {
+            if (useCache) apiCache[cacheKey] = { data: result.data, timestamp: Date.now() };
+            
+            // Jika aksi bukan 'fetch' atau 'get', kemungkinan ada perubahan data, bersihkan cache
+            if (!useCache && !action.startsWith('fetch') && !action.startsWith('get')) {
+              console.log(`[Cache Invalidate] Action: ${action}`);
+              Object.keys(apiCache).forEach(key => delete apiCache[key]);
+            }
+
             return result.data;
         } else {
             throw new Error(result.message || 'Error from Google Apps Script');
@@ -243,7 +265,7 @@ export const ApiService = {
 
   // Dashboard & System
   fetchDashboardStats: async (): Promise<DashboardStats> => {
-    const data = await fetchScript('fetchDashboardStats');
+    const data = await fetchScript('fetchDashboardStats', {}, true);
     return data as DashboardStats;
   },
   createBackup: async (): Promise<BackupResponse> => {
@@ -253,7 +275,7 @@ export const ApiService = {
     return await fetchScript('restoreDatabase', { data: backupData });
   },
   getSystemSettings: async (): Promise<SystemSettings> => {
-    return await fetchScript('getSystemSettings');
+    return await fetchScript('getSystemSettings', {}, true);
   },
   saveSystemSettings: async (settings: Partial<SystemSettings>): Promise<{ success: boolean; message: string }> => {
     return await fetchScript('saveSystemSettings', settings);

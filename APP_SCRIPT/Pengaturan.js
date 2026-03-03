@@ -29,6 +29,36 @@ const SHEET_HEADERS = {
   [SHEETS.SETTINGS]: ['key', 'value', 'description'] // NEW HEADERS
 };
 
+// --- CACHING & LOCKING SYSTEM ---
+const CACHE_TTL = 1800; // 30 menit dalam detik
+const LOCK_WAIT_MS = 15000; // 15 Detik tunggu antrian
+
+function getFromCache(key) {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(key);
+  if (cached) return JSON.parse(cached);
+  return null;
+}
+
+function setToCache(key, data) {
+  const cache = CacheService.getScriptCache();
+  try {
+    cache.put(key, JSON.stringify(data), CACHE_TTL);
+  } catch (e) {
+    // Jika data terlalu besar untuk cache, abaikan saja
+    console.warn("Cache put failed: " + e.message);
+  }
+}
+
+function invalidateCaches(sheetNames) {
+  const cache = CacheService.getScriptCache();
+  if (Array.isArray(sheetNames)) {
+    cache.removeAll(sheetNames);
+  } else {
+    cache.remove(sheetNames);
+  }
+}
+
 // --- UTILS: GLOBAL HELPERS ---
 
 function getSheetOrSetup(sheetName) {
@@ -49,9 +79,13 @@ function getSheetOrSetup(sheetName) {
 
 /**
  * Mengambil semua data dari sheet sebagai Array of Objects
- * Dengan pembersihan header (trim)
+ * Dengan pembersihan header (trim) dan Caching
  */
 function getData(sheetName) {
+  // Cek Cache dulu
+  const cachedData = getFromCache(sheetName);
+  if (cachedData) return cachedData;
+
   const sheet = getSheetOrSetup(sheetName);
   if (sheet.getLastRow() < 2) return [];
   
@@ -59,22 +93,23 @@ function getData(sheetName) {
   // Ambil header dan bersihkan dari spasi ekstra
   const headers = data.shift().map(h => String(h).trim()); 
   
-  return data
+  const result = data
     .filter(row => row.some(cell => cell !== "" && cell !== null)) // ABAIKAN BARIS KOSONG
     .map(row => {
       let obj = {};
       headers.forEach((h, i) => {
-        // Map header value ke object key
-        // Jika header kosong, skip
         if (h) {
-           obj[h] = row[i];
-           // Fallback alias (optional)
-           if (h === 'Kelas') obj['className'] = row[i];
-           if (h === 'Nama') obj['name'] = row[i];
+          obj[h] = row[i];
+          if (h === 'Kelas') obj['className'] = row[i];
+          if (h === 'Nama') obj['name'] = row[i];
         }
       });
       return obj;
     });
+
+  // Simpan ke Cache
+  setToCache(sheetName, result);
+  return result;
 }
 
 function logSystem(user, action) {

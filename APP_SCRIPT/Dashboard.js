@@ -5,6 +5,11 @@
  */
 
 function getDashboardStats() {
+  // Cek Cache untuk hasil akhir dashboard
+  const cacheKey = "DASHBOARD_STATS_FINAL";
+  const cached = getFromCache(cacheKey);
+  if (cached) return cached;
+
   const students = getData(SHEETS.STUDENTS);
   const attendance = getData(SHEETS.ATTENDANCE);
   const logs = getData(SHEETS.LOGS);
@@ -114,7 +119,7 @@ function getDashboardStats() {
       day: d.day, present: d.present, absent: d.absent
   }));
 
-  return {
+  const result = {
     totalStudents,
     attendanceRate,
     absentToday,
@@ -131,4 +136,8 @@ function getDashboardStats() {
     totalApiRequests: logs.length,
     activeUsers
   };
+
+  // Simpan hasil akhir ke cache selama 5 menit
+  setToCache(cacheKey, result);
+  return result;
 }

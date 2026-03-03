@@ -42,6 +42,7 @@ function createStudent(payload) {
     payload.address
   ]);
   
+  invalidateCaches([SHEETS.STUDENTS]);
   return { message: 'Student created successfully' };
 }
 
@@ -66,6 +67,7 @@ function updateStudent(payload) {
   sheet.getRange(rowIndex, 6).setValue(payload.parentPhone);
   sheet.getRange(rowIndex, 7).setValue(payload.address);
 
+  invalidateCaches([SHEETS.STUDENTS]);
   return { message: 'Student updated successfully' };
 }
 
@@ -77,6 +79,7 @@ function deleteStudent(payload) {
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][idColIndex]) === String(payload.id)) {
       sheet.deleteRow(i + 1);
+      invalidateCaches([SHEETS.STUDENTS]);
       return { message: 'Student deleted successfully' };
     }
   }
@@ -120,6 +123,7 @@ function importStudents(studentsList) {
   
   if (newRows.length > 0) {
     sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    invalidateCaches([SHEETS.STUDENTS]);
   }
   
   return { message: `Berhasil import ${count} siswa. Data NIS ganda diabaikan.`, count: count };

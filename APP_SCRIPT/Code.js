@@ -11,10 +11,6 @@
  * ============================================================
  */
 
-// --- CONFIGURATION ---
-const CACHE_TTL = 1800; // 30 Menit (dalam detik)
-const LOCK_WAIT_MS = 15000; // 15 Detik tunggu antrian
-
 function doPost(e) { return handleRequest(e); }
 function doGet(e) { return handleRequest(e); }
 
@@ -76,7 +72,7 @@ function processAction(payload) {
        try {
          const result = executeWriteAction(action, payload);
          // Invalidasi Cache Cerdas
-         invalidateCaches(action); 
+         smartInvalidateCaches(action); 
          return result;
        } finally {
          lock.releaseLock();
@@ -247,7 +243,7 @@ function getCachedData(action, payload, fetchFunction) {
  * Menghapus cache terkait saat data berubah.
  * Strategi: Hapus kunci umum yang sering diakses.
  */
-function invalidateCaches(action) {
+function smartInvalidateCaches(action) {
   const cache = CacheService.getScriptCache();
   
   // 1. Jika ada perubahan data Siswa/Guru/Absensi, Statistik Dashboard pasti berubah

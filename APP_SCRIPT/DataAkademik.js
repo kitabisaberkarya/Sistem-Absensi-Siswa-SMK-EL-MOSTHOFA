@@ -12,12 +12,14 @@ function createMajor(payload) {
   if (majors.find(m => m.code === payload.code)) throw new Error(`Kode ${payload.code} exist.`);
   const newId = 'M_' + Date.now();
   sheet.appendRow([newId, payload.code, payload.name]);
+  invalidateCaches([SHEETS.MAJORS]);
   return { message: 'Success' };
 }
 
 function deleteMajor(id) {
   const sheet = getSheetOrSetup(SHEETS.MAJORS);
   deleteRowById(sheet, id);
+  invalidateCaches([SHEETS.MAJORS]);
   return { message: 'Deleted' };
 }
 
@@ -30,12 +32,14 @@ function createSubject(payload) {
   if (subjects.find(s => s.code === payload.code)) throw new Error(`Mapel ${payload.code} exist.`);
   const newId = 'SUB_' + Date.now();
   sheet.appendRow([newId, payload.code, payload.name, payload.category]);
+  invalidateCaches([SHEETS.SUBJECTS]);
   return { message: 'Success' };
 }
 
 function deleteSubject(id) {
   const sheet = getSheetOrSetup(SHEETS.SUBJECTS);
   deleteRowById(sheet, id);
+  invalidateCaches([SHEETS.SUBJECTS]);
   return { message: 'Deleted' };
 }
 
@@ -87,12 +91,14 @@ function createClass(payload) {
   if (classes.find(c => c.name.toLowerCase() === payload.name.toLowerCase())) throw new Error(`Kelas ${payload.name} exist.`);
   const newId = 'CLS_' + Date.now();
   sheet.appendRow([newId, payload.name, payload.level, payload.major]);
+  invalidateCaches([SHEETS.CLASSES]);
   return { message: 'Success' };
 }
 
 function deleteClass(id) {
   const sheet = getSheetOrSetup(SHEETS.CLASSES);
   deleteRowById(sheet, id);
+  invalidateCaches([SHEETS.CLASSES]);
   return { message: 'Deleted' };
 }
 

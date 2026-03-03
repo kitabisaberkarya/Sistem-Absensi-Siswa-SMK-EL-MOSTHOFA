@@ -288,7 +288,3 @@ function getStudentAttendanceHistory(studentId) {
   const attendance = getData(SHEETS.ATTENDANCE);
   return attendance.filter(r => String(r.studentId) === String(studentId)).sort((a, b) => new Date(b.date) - new Date(a.date));
 }
-
-function getCounselingReportData() {
-  return []; 
-}

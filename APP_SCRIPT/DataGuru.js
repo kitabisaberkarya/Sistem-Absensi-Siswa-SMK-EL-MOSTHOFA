@@ -80,6 +80,7 @@ function createTeacher(payload) {
     ''
   ]);
   
+  invalidateCaches([SHEETS.USERS]);
   return { id: newId, message: 'User created successfully' };
 }
 
@@ -116,6 +117,7 @@ function updateTeacher(payload) {
   setCell('gender', payload.gender);
   setCell('status', payload.status);
 
+  invalidateCaches([SHEETS.USERS]);
   return { message: 'User updated successfully' };
 }
 
@@ -170,6 +172,7 @@ function importTeachers(teachers) {
 
     if (newRows.length > 0) {
       sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+      invalidateCaches([SHEETS.USERS]);
     }
 
     return { success: true, message: `Berhasil import ${count} guru baru. Data ganda diabaikan.`, count: count };
@@ -249,6 +252,7 @@ function importGlobalUsers(usersList) {
 
     if (newRows.length > 0) {
       sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
+      invalidateCaches([SHEETS.USERS]);
     }
 
     logSystem('ADMIN', `Bulk Imported ${count} Users Globally`);
