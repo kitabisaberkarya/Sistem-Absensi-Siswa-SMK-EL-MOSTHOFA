@@ -139,7 +139,19 @@ export const ApiService = {
   // Teachers & Users
   fetchTeachers: async (): Promise<User[]> => {
     const data = await fetchScript('fetchTeachers', {}, true);
-    return (data || []) as User[];
+    const teachers = (data || []) as User[];
+    
+    // Fallback ID for duplicate keys in React if imported data is bad
+    const processedTeachers = teachers.map((t, idx) => ({
+        ...t,
+        id: t.id ? t.id : `TEMP_${idx}`
+    }));
+
+    // Simple deduplication strictly by ID to prevent React key errors, 
+    // but without masking legitimately empty-email duplicates.
+    const uniqueTeachers = Array.from(new Map(processedTeachers.map(t => [t.id, t])).values());
+    
+    return uniqueTeachers;
   },
   createTeacher: async (payload: CreateTeacherPayload): Promise<{ success: boolean; message: string; id: string }> => {
     const data = await fetchScript('createTeacher', payload);
@@ -159,11 +171,16 @@ export const ApiService = {
   // Students
   fetchStudentsByClass: async (className: string): Promise<Student[]> => {
     const data = await fetchScript('fetchStudentsByClass', { className }, true);
-    return (data || []) as Student[];
+    const students = (data || []) as Student[];
+    // Fallback deduplication by NIS to ensure no duplicates, but don't collapse empty NIS
+    const uniqueStudents = Array.from(new Map(students.map(s => [s.nis ? s.nis : s.id, s])).values());
+    return uniqueStudents;
   },
   fetchAllStudents: async (): Promise<Student[]> => {
     const data = await fetchScript('fetchAllStudents', {}, true);
-    return (data || []) as Student[];
+    const students = (data || []) as Student[];
+    const uniqueStudents = Array.from(new Map(students.map(s => [s.nis ? s.nis : s.id, s])).values());
+    return uniqueStudents;
   },
   createStudent: async (payload: CreateStudentPayload): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createStudent', payload);

@@ -99,16 +99,15 @@ export const ReportService = {
     
     doc.setFontSize(10);
     doc.setFont("times", "normal");
-    doc.text("Bidang Keahlian: Teknologi Informasi & Komunikasi, Bisnis & Manajemen", centerX, 30, { align: "center" });
-    doc.text("Jalan Raya Pamekasan - Sumenep KM. 15, Pamekasan, Jawa Timur", centerX, 35, { align: "center" });
+    doc.text("Jalan Raya Pamekasan - Sumenep KM. 15, Pamekasan, Jawa Timur", centerX, 30, { align: "center" });
     doc.setFontSize(9);
-    doc.text("Telp: (0324) 123456 | Email: admin@elmosthofa.sch.id | Website: www.elmosthofa.sch.id", centerX, 40, { align: "center" });
+    doc.text("Telp: (0324) 123456 | Email: admin@elmosthofa.sch.id | Website: www.elmosthofa.sch.id", centerX, 35, { align: "center" });
 
     // 3. Double Line Separator
     doc.setLineWidth(0.5);
-    doc.line(10, 44, pageWidth - 10, 44);
+    doc.line(10, 39, pageWidth - 10, 39);
     doc.setLineWidth(0.2);
-    doc.line(10, 45, pageWidth - 10, 45); // Thin line below
+    doc.line(10, 40, pageWidth - 10, 40); // Thin line below
   },
 
   // --- PDF Generation (Generic Daily/Student) ---
@@ -352,11 +351,12 @@ export const ReportService = {
     doc.setFontSize(12);
     
     // Tanggal
-    const today = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
-    doc.text(`Pamekasan, ${today}`, 140, 60);
+    const dateObj = data.date ? new Date(data.date) : new Date();
+    const formattedDate = dateObj.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+    doc.text(`Pamekasan, ${formattedDate}`, 140, 60);
 
     // Detail
-    doc.text("Nomor", margin, 65); doc.text(`: 421/${letterCode}/BK/SMK-EM/${new Date().getFullYear()}`, 50, 65);
+    doc.text("Nomor", margin, 65); doc.text(`: 421/${letterCode}/BK/SMK-EM/${dateObj.getFullYear()}`, 50, 65);
     doc.text("Lampiran", margin, 71); doc.text(": -", 50, 71);
     doc.text("Perihal", margin, 77); 
     doc.setFont("times", "bold");
@@ -385,8 +385,11 @@ export const ReportService = {
     const splitText2 = doc.splitTextToSize(paragraph2, 170);
     doc.text(splitText2, margin, 165);
 
+    // get day name for dateObj
+    const dayName = dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
+
     // Schedule
-    doc.text("Hari / Tanggal", 30, 177); doc.text(`: Senin, ${today}`, 65, 177); // Default to "Next Monday" logic or Today for prototype
+    doc.text("Hari / Tanggal", 30, 177); doc.text(`: ${dayName}, ${formattedDate}`, 65, 177); // Used provided date for meeting
     doc.text("Waktu", 30, 183); doc.text(": 08.00 WIB - Selesai", 65, 183);
     doc.text("Tempat", 30, 189); doc.text(": Ruang BK SMK El Mosthofa", 65, 189);
     doc.text("Keperluan", 30, 195); doc.text(": Pembinaan dan Konsultasi Belajar", 65, 195);

@@ -35,19 +35,19 @@ function handleLogin(identifier, password) {
 
 function getAllTeachers() {
   const users = getData(SHEETS.USERS);
-  // Filter out any empty rows or bad data
+  // Filter out completely empty rows, but allow users without email since admin might bulk import names only
   return users
-    .filter(u => u.name && u.email) 
+    .filter(u => u.name) 
     .map(u => ({
       id: u.id,
       name: u.name,
-      email: u.email,
+      email: u.email || '-',
       role: u.role,
-      nip: u.nip,
-      phone: u.phone,
-      subject: u.subject,
-      gender: u.gender,
-      status: u.status,
+      nip: u.nip || '-',
+      phone: u.phone || '-',
+      subject: u.subject || '-',
+      gender: u.gender || 'L',
+      status: u.status || 'Active',
       avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random`
     }));
 }
@@ -208,16 +208,19 @@ function importGlobalUsers(usersList) {
     const ALLOWED_ROLES = ['TEACHER', 'COUNSELOR', 'PRINCIPAL', 'ADMIN'];
 
     usersList.forEach(u => {
-      const email = String(u.email).toLowerCase().trim();
+      const rawEmail = String(u.email || '').toLowerCase().trim();
       const nip = String(u.nip || '-').trim();
       const name = String(u.name).trim();
       const nameLower = name.toLowerCase();
       
       // Basic Validation
-      if (!email || !name) return; // Skip invalid rows
+      if (!name) return; // Skip invalid rows (Name is mandatory)
       
+      // Generate email if none provided
+      const email = rawEmail || `user.${Math.floor(Math.random()*99999)}@sekolah.sch.id`;
+
       // Duplicate Check
-      if (registeredEmails.has(email)) return; // Skip duplicate email
+      if (rawEmail && registeredEmails.has(email)) return; // Skip duplicate email if explicitly provided
       if (nip !== '-' && registeredNIPs.has(nip)) return; // Skip duplicate NIP
       if (registeredNames.has(nameLower)) return; // Skip duplicate Name
 

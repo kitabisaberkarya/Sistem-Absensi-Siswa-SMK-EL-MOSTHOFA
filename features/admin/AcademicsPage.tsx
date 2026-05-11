@@ -7,7 +7,7 @@ import { AddMajorModal } from '../../components/AddMajorModal';
 import { AddSubjectModal } from '../../components/AddSubjectModal';
 import { BulkSubjectImportModal } from '../../components/BulkSubjectImportModal';
 import { AddClassModal } from '../../components/AddClassModal';
-import { Search, Plus, Upload } from 'lucide-react';
+import { Search, Plus, Upload, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 
 type Tab = 'majors' | 'subjects' | 'classes';
@@ -36,25 +36,47 @@ export const AcademicsPage = () => {
       finally { setLoading(false); }
   };
 
+  const fetchMajors = async () => {
+      setLoading(true);
+      try { setMajors(await ApiService.fetchMajors()); } 
+      catch(e){} finally { setLoading(false); }
+  };
+
+  const fetchClasses = async () => {
+      setLoading(true);
+      try { setClasses(await ApiService.fetchClasses()); } 
+      catch(e){} finally { setLoading(false); }
+  };
+
   useEffect(() => {
-    if (activeTab === 'majors') {
-        const load = async () => {
-            setLoading(true);
-            try { setMajors(await ApiService.fetchMajors()); } 
-            catch(e){} finally { setLoading(false); }
-        };
-        load();
-    }
+    if (activeTab === 'majors') fetchMajors();
     else if (activeTab === 'subjects') fetchSubjects();
-    else {
-        const load = async () => {
-            setLoading(true);
-            try { setClasses(await ApiService.fetchClasses()); } 
-            catch(e){} finally { setLoading(false); }
-        };
-        load();
-    }
+    else fetchClasses();
   }, [activeTab]);
+
+  const handleDeleteMajor = async (id: string) => {
+    if(!confirm('Hapus jurusan ini?')) return;
+    try {
+        await ApiService.deleteMajor(id);
+        fetchMajors();
+    } catch(e) { alert('Gagal menghapus jurusan'); }
+  };
+
+  const handleDeleteSubject = async (id: string) => {
+    if(!confirm('Hapus mapel ini?')) return;
+    try {
+        await ApiService.deleteSubject(id);
+        fetchSubjects();
+    } catch(e) { alert('Gagal menghapus mapel'); }
+  };
+
+  const handleDeleteClass = async (id: string) => {
+    if(!confirm('Hapus kelas ini?')) return;
+    try {
+        await ApiService.deleteClass(id);
+        fetchClasses();
+    } catch(e) { alert('Gagal menghapus kelas'); }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -96,7 +118,7 @@ export const AcademicsPage = () => {
              <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold">
-                        <tr><th className="px-6 py-3">Kode</th><th className="px-6 py-3">Nama Mata Pelajaran</th><th className="px-6 py-3">Kategori</th></tr>
+                        <tr><th className="px-6 py-3">Kode</th><th className="px-6 py-3">Nama Mata Pelajaran</th><th className="px-6 py-3">Kategori</th><th className="px-6 py-3 text-right">Opsi</th></tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                          {subjects.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((s) => (
@@ -105,6 +127,11 @@ export const AcademicsPage = () => {
                                  <td className="px-6 py-3 font-medium text-gray-900">{s.name}</td>
                                  <td className="px-6 py-3">
                                      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">{s.category}</span>
+                                 </td>
+                                 <td className="px-6 py-3 text-right">
+                                     <button onClick={() => handleDeleteSubject(s.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                         <Trash2 className="w-4 h-4" />
+                                     </button>
                                  </td>
                              </tr>
                          ))}
@@ -116,10 +143,18 @@ export const AcademicsPage = () => {
         {activeTab === 'majors' && (
              <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold"><tr><th className="px-6 py-3">Kode</th><th className="px-6 py-3">Nama Jurusan</th></tr></thead>
+                    <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold"><tr><th className="px-6 py-3">Kode</th><th className="px-6 py-3">Nama Jurusan</th><th className="px-6 py-3 text-right">Opsi</th></tr></thead>
                     <tbody className="divide-y divide-gray-100">
                          {majors.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).map((m) => (
-                             <tr key={m.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-mono font-bold">{m.code}</td><td className="px-6 py-3">{m.name}</td></tr>
+                             <tr key={m.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-3 font-mono font-bold">{m.code}</td>
+                                <td className="px-6 py-3">{m.name}</td>
+                                <td className="px-6 py-3 text-right">
+                                     <button onClick={() => handleDeleteMajor(m.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                         <Trash2 className="w-4 h-4" />
+                                     </button>
+                                 </td>
+                            </tr>
                          ))}
                     </tbody>
                 </table>
@@ -129,10 +164,19 @@ export const AcademicsPage = () => {
         {activeTab === 'classes' && (
              <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold"><tr><th className="px-6 py-3">Nama Kelas</th><th className="px-6 py-3">Tingkat</th><th className="px-6 py-3">Jurusan</th></tr></thead>
+                    <thead className="bg-gray-50 uppercase text-xs text-gray-500 font-bold"><tr><th className="px-6 py-3">Nama Kelas</th><th className="px-6 py-3">Tingkat</th><th className="px-6 py-3">Jurusan</th><th className="px-6 py-3 text-right">Opsi</th></tr></thead>
                     <tbody className="divide-y divide-gray-100">
                          {classes.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map((c) => (
-                             <tr key={c.id} className="hover:bg-gray-50"><td className="px-6 py-3 font-bold">{c.name}</td><td className="px-6 py-3">{c.level}</td><td className="px-6 py-3">{c.major}</td></tr>
+                             <tr key={c.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-3 font-bold">{c.name}</td>
+                                <td className="px-6 py-3">{c.level}</td>
+                                <td className="px-6 py-3">{c.major}</td>
+                                <td className="px-6 py-3 text-right">
+                                     <button onClick={() => handleDeleteClass(c.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                         <Trash2 className="w-4 h-4" />
+                                     </button>
+                                 </td>
+                            </tr>
                          ))}
                     </tbody>
                 </table>
@@ -140,10 +184,10 @@ export const AcademicsPage = () => {
         )}
       </div>
 
-      <AddMajorModal isOpen={isAddMajorOpen} onClose={() => { setIsAddMajorOpen(false); /* refresh */ }} />
+      <AddMajorModal isOpen={isAddMajorOpen} onClose={() => { setIsAddMajorOpen(false); fetchMajors(); }} />
       <AddSubjectModal isOpen={isAddSubjectOpen} onClose={() => { setIsAddSubjectOpen(false); fetchSubjects(); }} />
       <BulkSubjectImportModal isOpen={isImportSubjectOpen} onClose={() => { setIsImportSubjectOpen(false); fetchSubjects(); }} />
-      <AddClassModal isOpen={isAddClassOpen} onClose={() => { setIsAddClassOpen(false); /* refresh */ }} majors={majors} />
+      <AddClassModal isOpen={isAddClassOpen} onClose={() => { setIsAddClassOpen(false); fetchClasses(); }} majors={majors} />
     </div>
   );
 };

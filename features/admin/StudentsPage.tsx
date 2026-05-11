@@ -55,7 +55,7 @@ export const StudentsPage = () => {
 
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.nis.includes(searchTerm);
-    const matchesClass = filterClass ? s.className === filterClass : true;
+    const matchesClass = filterClass ? (s.className || '').trim() === filterClass.trim() : true;
     return matchesSearch && matchesClass;
   });
 

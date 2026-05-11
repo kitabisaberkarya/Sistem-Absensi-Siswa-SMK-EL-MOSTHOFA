@@ -20,6 +20,10 @@ export const TeacherReportsPage = () => {
   const [classList, setClassList] = useState<ClassRoom[]>([]);
   const [recapData, setRecapData] = useState<SemesterRecapEntry[]>([]);
   const [loadingRecap, setLoadingRecap] = useState(false);
+  const [recapType, setRecapType] = useState<'daily' | 'weekly' | 'monthly' | 'semester'>('semester');
+  const [recapDate, setRecapDate] = useState(new Date().toISOString().split('T')[0]);
+  const [recapMonth, setRecapMonth] = useState(new Date().getMonth().toString());
+  
   const [filters, setFilters] = useState({
       classId: '',
       semester: 'Ganjil',
@@ -64,9 +68,21 @@ export const TeacherReportsPage = () => {
       }
       setLoadingRecap(true);
       try {
-          // Format Academic Year standard: "2024/2025"
-          const academicYearStr = `${filters.year}/${parseInt(filters.year) + 1}`;
-          const data = await ApiService.fetchSemesterRecap(filters.classId, filters.semester, academicYearStr);
+          const payload: any = {
+              classId: filters.classId,
+              type: recapType,
+              year: filters.year
+          };
+
+          if (recapType === 'daily' || recapType === 'weekly') {
+              payload.date = recapDate;
+          } else if (recapType === 'monthly') {
+              payload.month = parseInt(recapMonth);
+          } else if (recapType === 'semester') {
+              payload.semester = filters.semester;
+          }
+
+          const data = await ApiService.fetchRecap(payload);
           setRecapData(data.sort((a, b) => a.name.localeCompare(b.name)));
       } catch (e) {
           console.error(e);
@@ -80,9 +96,18 @@ export const TeacherReportsPage = () => {
   const handleExport = (type: 'pdf' | 'excel') => {
       if (recapData.length === 0) return;
       
+      const titleMap = {
+          daily: 'LAPORAN PRESENSI HARIAN',
+          weekly: 'LAPORAN PRESENSI MINGGUAN',
+          monthly: 'LAPORAN PRESENSI BULANAN',
+          semester: 'LAPORAN PRESENSI SEMESTER'
+      };
+
+      const subtitleInfo = recapType === 'semester' ? `SEMESTER ${filters.semester.toUpperCase()} ` : '';
+
       const meta = {
-          title: `REKAP ABSENSI ${filters.classId} - SEMESTER ${filters.semester.toUpperCase()}`,
-          subtitle: `TAHUN AJARAN ${filters.year}/${parseInt(filters.year) + 1}`,
+          title: `${titleMap[recapType]} KELAS ${filters.classId}`,
+          subtitle: `${subtitleInfo}TAHUN AJARAN ${filters.year}/${parseInt(filters.year) + 1}`,
           date: new Date().toLocaleDateString('id-ID'),
           teacher: user?.name || 'Guru Mapel'
       };
@@ -214,8 +239,8 @@ export const TeacherReportsPage = () => {
               
               {/* Filter Bar */}
               <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                  <div className="flex flex-col md:flex-row gap-4 items-end">
-                      <div className="flex-1 w-full">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <div className="w-full">
                           <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Pilih Kelas</label>
                           <div className="relative">
                             <select 
@@ -230,34 +255,77 @@ export const TeacherReportsPage = () => {
                           </div>
                       </div>
                       
-                      <div className="w-full md:w-40">
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Semester</label>
+                      <div className="w-full">
+                          <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Tipe Rekap</label>
                           <select 
                             className="w-full border border-gray-300 p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
-                            value={filters.semester}
-                            onChange={(e) => setFilters({...filters, semester: e.target.value})}
+                            value={recapType}
+                            onChange={(e) => setRecapType(e.target.value as any)}
                           >
-                              <option value="Ganjil">Ganjil</option>
-                              <option value="Genap">Genap</option>
+                              <option value="daily">Harian</option>
+                              <option value="weekly">Mingguan</option>
+                              <option value="monthly">Bulanan</option>
+                              <option value="semester">Semester</option>
                           </select>
                       </div>
 
-                      <div className="w-full md:w-40">
-                          <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Tahun Mulai</label>
-                          <select 
-                            className="w-full border border-gray-300 p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
-                            value={filters.year}
-                            onChange={(e) => setFilters({...filters, year: e.target.value})}
-                          >
-                              <option value="2023">2023/2024</option>
-                              <option value="2024">2024/2025</option>
-                              <option value="2025">2025/2026</option>
-                          </select>
-                      </div>
+                      {recapType === 'daily' || recapType === 'weekly' ? (
+                        <div className="w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">
+                                {recapType === 'daily' ? 'Pilih Tanggal' : 'Tanggal Mulai'}
+                            </label>
+                            <input 
+                                type="date"
+                                className="w-full border border-gray-300 p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                                value={recapDate}
+                                onChange={(e) => setRecapDate(e.target.value)}
+                            />
+                        </div>
+                      ) : recapType === 'monthly' ? (
+                        <div className="w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Pilih Bulan</label>
+                            <select 
+                                className="w-full border border-gray-300 p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                                value={recapMonth}
+                                onChange={(e) => setRecapMonth(e.target.value)}
+                            >
+                                {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, idx) => (
+                                    <option key={idx} value={idx}>{m}</option>
+                                ))}
+                            </select>
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">Semester</label>
+                            <select 
+                              className="w-full border border-gray-300 p-2.5 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none"
+                              value={filters.semester}
+                              onChange={(e) => setFilters({...filters, semester: e.target.value})}
+                            >
+                                <option value="Ganjil">Ganjil</option>
+                                <option value="Genap">Genap</option>
+                            </select>
+                        </div>
+                      )}
 
-                      <Button onClick={handleFetchRecap} isLoading={loadingRecap} className="w-full md:w-auto h-[42px]">
-                          <Search className="w-4 h-4 mr-2" /> Tampilkan
-                      </Button>
+                      <div className="w-full md:col-span-4 flex justify-end gap-2 text-right mt-2">
+                           {/* Year remains useful */}
+                           <div className="flex-1 w-full flex items-center max-w-sm ml-auto mr-auto lg:mr-2">
+                              <label className="whitespace-nowrap text-xs font-bold text-gray-500 uppercase tracking-wide mr-2">Tahun Ajaran</label>
+                              <select 
+                                className="border border-gray-300 p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-brand-500 outline-none flex-1"
+                                value={filters.year}
+                                onChange={(e) => setFilters({...filters, year: e.target.value})}
+                              >
+                                  <option value="2024">2024/2025</option>
+                                  <option value="2025">2025/2026</option>
+                                  <option value="2026">2026/2027</option>
+                              </select>
+                           </div>
+                          <Button onClick={handleFetchRecap} isLoading={loadingRecap} className="w-full md:w-auto h-[42px]">
+                              <Search className="w-4 h-4 mr-2" /> Tampilkan
+                          </Button>
+                      </div>
                   </div>
               </div>
 

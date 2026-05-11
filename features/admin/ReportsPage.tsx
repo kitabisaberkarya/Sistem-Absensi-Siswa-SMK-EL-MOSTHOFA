@@ -166,7 +166,7 @@ export const ReportsPage = () => {
                     activeTab === 'semester' ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
                 )}
             >
-                <BookOpen className="w-4 h-4" /> Rekapitulasi Presensi
+                <BookOpen className="w-4 h-4" /> Rekap Kehadiran
             </button>
         </div>
       </div>

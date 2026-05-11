@@ -77,7 +77,6 @@ export const ReportPreviewModal: React.FC<Props> = ({ isOpen, onClose, meta, dat
                     <div className="flex-1 text-center px-4">
                         <h3 className="text-sm font-bold font-serif text-gray-800 tracking-wide">YAYASAN PENDIDIKAN ISLAM AT-TOHIRI</h3>
                         <h1 className="text-xl font-bold font-serif text-gray-900 uppercase tracking-wider my-1">SMK EL MOSTHOFA</h1>
-                        <p className="text-[10px] text-gray-600 font-serif italic">Bidang Keahlian: Teknologi Informasi & Komunikasi, Bisnis & Manajemen</p>
                         <p className="text-[10px] text-gray-600 font-serif">Jalan Raya Pamekasan - Sumenep KM. 15, Pamekasan, Jawa Timur</p>
                         <p className="text-[9px] text-gray-500 mt-1">Telp: (0324) 123456 | Email: admin@elmosthofa.sch.id | Website: www.elmosthofa.sch.id</p>
                     </div>

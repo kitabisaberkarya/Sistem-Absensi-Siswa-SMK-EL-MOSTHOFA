@@ -27,6 +27,7 @@ export const CounselorReportsPage = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CounselingData[]>([]); // Use the correct interface
   const [searchTerm, setSearchTerm] = useState('');
+  const [letterDate, setLetterDate] = useState(new Date().toISOString().split('T')[0]);
   
   // Modal State
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -61,7 +62,7 @@ export const CounselorReportsPage = () => {
         nis: v.student.nis,
         violationCount: v.alpha,
         letterType: type,
-        date: new Date().toISOString()
+        date: letterDate
     });
   };
 
@@ -195,8 +196,19 @@ export const CounselorReportsPage = () => {
 
       {/* CONTENT: LETTERS GENERATOR */}
       {activeTab === 'letters' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredData.filter(d => d.alpha > 0).map((d) => (
+        <div className="space-y-6">
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                <span className="text-sm font-bold text-gray-700">Set Tanggal Surat & Pemanggilan:</span>
+                <input 
+                    type="date"
+                    className="border border-gray-300 p-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                    value={letterDate}
+                    onChange={(e) => setLetterDate(e.target.value)}
+                />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredData.filter(d => d.alpha > 0).map((d) => (
                 <div key={d.student.id} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                         <div>
@@ -252,6 +264,7 @@ export const CounselorReportsPage = () => {
                     Belum ada siswa dengan catatan pelanggaran absensi (Alpha).
                 </div>
             )}
+            </div>
         </div>
       )}
 

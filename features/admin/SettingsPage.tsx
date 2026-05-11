@@ -252,9 +252,6 @@ export const SettingsPage = () => {
                                         {settings.schoolName}
                                     </h1>
                                     <div className="space-y-1">
-                                        <p className="text-xs text-gray-600 italic">
-                                            Bidang Keahlian: Teknologi Informasi & Komunikasi, Bisnis & Manajemen
-                                        </p>
                                         <p className="text-xs text-gray-800 font-medium">
                                             {settings.schoolAddress}
                                         </p>
