@@ -182,6 +182,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
   // --- ADMIN DESKTOP LAYOUT ---
   if (user?.role === Role.ADMIN) {
     return (
+      <>
       <div className="flex h-screen bg-[#f3f4f6] font-sans overflow-hidden">
         {/* Sidebar (Desktop Only) */}
         <aside 
@@ -337,6 +338,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
       </div>
 
       <ChangePasswordModal isOpen={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
+      </>
     );
   }
 
