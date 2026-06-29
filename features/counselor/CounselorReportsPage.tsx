@@ -6,7 +6,8 @@ import { ReportService } from '../../services/ReportService';
 import { Student } from '../../types';
 import { Button } from '../../components/Button';
 import { StudentViolationDetailModal } from '../../components/StudentViolationDetailModal';
-import { 
+import { useToast } from '../../context/ToastContext';
+import {
   FileText, 
   Search, 
   UserX,
@@ -23,6 +24,7 @@ type Tab = 'risk-monitor' | 'letters';
 
 export const CounselorReportsPage = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('risk-monitor');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CounselingData[]>([]); // Use the correct interface
@@ -45,7 +47,7 @@ export const CounselorReportsPage = () => {
 
     } catch (e) {
       console.error(e);
-      alert("Gagal mengambil data konseling.");
+      showToast('error', 'Gagal mengambil data konseling');
     } finally {
       setLoading(false);
     }

@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { 
-  LogOut, LayoutDashboard, ClipboardList, HeartHandshake, Briefcase, 
-  Menu, Search, Bell, Mail, Settings, ChevronDown, 
-  Users, GraduationCap, FileText, Inbox, Database, BookMarked, Printer, 
-  X, Grid
+import { ChangePasswordModal } from './ChangePasswordModal';
+import {
+  LogOut, LayoutDashboard, ClipboardList, HeartHandshake, Briefcase,
+  Menu, Search, Mail, Settings, ChevronDown, KeyRound,
+  Users, GraduationCap, FileText, Inbox, Database, BookMarked, Printer,
+  Grid
 } from 'lucide-react';
 import { Role, ViewState } from '../types';
 import clsx from 'clsx';
@@ -20,6 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   // --- HANDLERS ---
   const handleNavClick = (view: ViewState) => {
@@ -306,7 +308,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                  <img src={user.avatar} alt="Profile" className="w-9 h-9 rounded-full border border-gray-200 group-hover:border-brand-500 transition-all object-cover" />
                  <ChevronDown className="w-4 h-4 text-gray-400" />
 
-                 <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all transform origin-top-right z-50">
+                 <div className="absolute top-full right-0 mt-2 w-52 bg-white rounded-lg shadow-lg border border-gray-100 py-1 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all transform origin-top-right z-50">
+                    <button onClick={() => setChangePasswordOpen(true)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                       <KeyRound className="w-4 h-4" /> Ubah Kata Sandi
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
                     <button onClick={logout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                        <LogOut className="w-4 h-4" /> Sign Out
                     </button>
@@ -329,6 +335,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
           <MobileBottomNav />
         </div>
       </div>
+
+      <ChangePasswordModal isOpen={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
     );
   }
 
@@ -407,6 +415,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
                 </div>
                 <img src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name}`} alt="Avatar" className="w-9 h-9 rounded-full border border-gray-200" />
               </div>
+              <button onClick={() => setChangePasswordOpen(true)} className="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-colors" title="Ubah Kata Sandi">
+                <KeyRound className="w-5 h-5" />
+              </button>
               <button onClick={logout} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Logout">
                 <LogOut className="w-5 h-5" />
               </button>
@@ -445,7 +456,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
       </main>
 
       <MobileBottomNav />
-      
+
+      <ChangePasswordModal isOpen={changePasswordOpen} onClose={() => setChangePasswordOpen(false)} />
+
       <footer className="bg-white border-t py-6 mt-auto hidden md:block">
         <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-400">
           &copy; {new Date().getFullYear()} SMK EL MOSTHOFA Pamekasan Madura.

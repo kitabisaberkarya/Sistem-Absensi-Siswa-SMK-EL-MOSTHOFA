@@ -30,7 +30,7 @@ const SHEET_HEADERS = {
 };
 
 // --- CACHING & LOCKING SYSTEM ---
-const CACHE_TTL = 1800; // 30 menit dalam detik
+const CACHE_TTL = 300; // 5 menit dalam detik (reduced from 1800 for real-time accuracy)
 const LOCK_WAIT_MS = 15000; // 15 Detik tunggu antrian
 
 function getFromCache(key) {

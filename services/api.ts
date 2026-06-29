@@ -1,12 +1,12 @@
 
-import { 
-  User, Role, Student, Major, Subject, ClassRoom, 
+import {
+  User, Role, Student, Major, Subject, ClassRoom,
   SubmissionPayload,
   CreateTeacherPayload, UpdateTeacherPayload, ImportedTeacher, ImportedUser,
   CreateStudentPayload, UpdateStudentPayload, ImportedStudent,
   BackupData, BackupResponse, DashboardStats,
   SemesterRecapEntry, StudentHistoryLog, TeacherHistoryLog,
-  PrincipalReportData, CounselingData, SystemSettings 
+  PrincipalReportData, CounselingData, SystemSettings, MailboxMessage
 } from '../types';
 
 // Re-export for other files using ApiService
@@ -207,6 +207,10 @@ export const ApiService = {
     const data = await fetchScript('createMajor', payload);
     return { success: true, message: data.message };
   },
+  updateMajor: async (payload: { id: string; code: string; name: string }): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('updateMajor', payload);
+    return { success: true, message: data.message };
+  },
   deleteMajor: async (id: string): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('deleteMajor', { id });
     return { success: true, message: data.message };
@@ -217,6 +221,10 @@ export const ApiService = {
   },
   createSubject: async (payload: { code: string; name: string; category: string }): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createSubject', payload);
+    return { success: true, message: data.message };
+  },
+  updateSubject: async (payload: { id: string; code: string; name: string; category: string }): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('updateSubject', payload);
     return { success: true, message: data.message };
   },
   deleteSubject: async (id: string): Promise<{ success: boolean; message: string }> => {
@@ -232,6 +240,10 @@ export const ApiService = {
   },
   createClass: async (payload: { name: string; level: string; major: string }): Promise<{ success: boolean; message: string }> => {
     const data = await fetchScript('createClass', payload);
+    return { success: true, message: data.message };
+  },
+  updateClass: async (payload: { id: string; name: string; level: string; major: string }): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('updateClass', payload);
     return { success: true, message: data.message };
   },
   deleteClass: async (id: string): Promise<{ success: boolean; message: string }> => {
@@ -282,7 +294,8 @@ export const ApiService = {
 
   // Dashboard & System
   fetchDashboardStats: async (): Promise<DashboardStats> => {
-    const data = await fetchScript('fetchDashboardStats', {}, true);
+    // Tidak di-cache di browser agar data absensi guru selalu real-time
+    const data = await fetchScript('fetchDashboardStats', {}, false);
     return data as DashboardStats;
   },
   createBackup: async (): Promise<BackupResponse> => {
@@ -290,6 +303,32 @@ export const ApiService = {
   },
   restoreDatabase: async (backupData: BackupData): Promise<{ success: boolean; message: string }> => {
     return await fetchScript('restoreDatabase', { data: backupData });
+  },
+  // Mailbox
+  fetchMessages: async (userId: string): Promise<MailboxMessage[]> => {
+    const data = await fetchScript('fetchMessages', { userId });
+    return (data || []) as MailboxMessage[];
+  },
+  sendMessage: async (payload: { from: string; fromName: string; to: string; subject: string; body: string }): Promise<{ success: boolean; message: string; id: string }> => {
+    const data = await fetchScript('sendMessage', payload);
+    return { success: true, message: data.message, id: data.id };
+  },
+  markMessageRead: async (messageId: string): Promise<{ success: boolean }> => {
+    await fetchScript('markMessageRead', { messageId });
+    return { success: true };
+  },
+  toggleStarMessage: async (messageId: string): Promise<{ success: boolean; starred: boolean }> => {
+    const data = await fetchScript('toggleStarMessage', { messageId });
+    return { success: true, starred: data.starred };
+  },
+  deleteMessage: async (messageId: string): Promise<{ success: boolean }> => {
+    await fetchScript('deleteMessage', { messageId });
+    return { success: true };
+  },
+
+  changePassword: async (payload: { userId: string; currentPassword: string; newPassword: string }): Promise<{ success: boolean; message: string }> => {
+    const data = await fetchScript('changePassword', payload);
+    return { success: true, message: data.message };
   },
   getSystemSettings: async (): Promise<SystemSettings> => {
     return await fetchScript('getSystemSettings', {}, true);

@@ -156,9 +156,10 @@ export interface SystemLog {
 export interface DashboardStats {
   // Common
   totalStudents: number;
+  totalClasses: number;
   attendanceRate: number;
   absentToday: number;
-  
+
   // Principal Specific
   weeklyData: { day: string; present: number; absent: number; }[];
   classRankings: ClassRanking[];
@@ -282,6 +283,19 @@ export interface CounselingData {
   sick: number;
   permission: number;
   status: 'Aman' | 'Waspada' | 'Bahaya';
+}
+
+// --- Mailbox Types ---
+export interface MailboxMessage {
+  id: string;
+  from: string;
+  fromName: string;
+  to: string;
+  subject: string;
+  body: string;
+  timestamp: string;
+  isRead: boolean;
+  isStarred: boolean;
 }
 
 // --- System Settings Interfaces ---

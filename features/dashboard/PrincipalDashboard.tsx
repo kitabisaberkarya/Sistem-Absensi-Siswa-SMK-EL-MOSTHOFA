@@ -1,7 +1,7 @@
 import React from 'react';
 import { DashboardStats } from '../../types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingUp, Users, CheckCircle2, Award, Download } from 'lucide-react';
+import { TrendingUp, Users, CheckCircle2, Award, Download, School } from 'lucide-react';
 import { Button } from '../../components/Button';
 import clsx from 'clsx';
 import { ReportService } from '../../services/ReportService';
@@ -47,8 +47,8 @@ export const PrincipalDashboard: React.FC<Props> = ({ stats }) => {
       </div>
 
       {/* 2. Executive Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-indigo-900 to-blue-900 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-indigo-900 to-blue-900 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-indigo-200 text-sm font-medium">Tingkat Kehadiran</p>
@@ -56,10 +56,7 @@ export const PrincipalDashboard: React.FC<Props> = ({ stats }) => {
             </div>
             <TrendingUp className="text-indigo-300 w-6 h-6" />
           </div>
-          <div className="mt-4 text-xs text-indigo-300 flex items-center gap-1">
-             <span className="bg-white/10 px-1.5 py-0.5 rounded text-white">+0.5%</span>
-             <span>dari minggu lalu</span>
-          </div>
+          <div className="mt-4 text-xs text-indigo-300">Rata-rata hari ini</div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
@@ -77,6 +74,19 @@ export const PrincipalDashboard: React.FC<Props> = ({ stats }) => {
         <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
            <div className="flex items-start justify-between">
             <div>
+              <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Kelas</p>
+              <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats.totalClasses ?? stats.classRankings.length}</h3>
+            </div>
+            <div className="bg-purple-50 p-2 rounded-lg text-purple-600">
+               <School className="w-5 h-5" />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">Kelas terdaftar</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+           <div className="flex items-start justify-between">
+            <div>
               <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Laporan Guru</p>
               <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats.teacherSubmissionRate}%</h3>
             </div>
@@ -85,21 +95,6 @@ export const PrincipalDashboard: React.FC<Props> = ({ stats }) => {
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-2">Sudah submit hari ini</p>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-           <div className="flex items-start justify-between">
-            <div>
-              <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Kelas Terbaik</p>
-              <h3 className="text-3xl font-bold text-gray-900 mt-1">
-                 {stats.classRankings.find(c => c.label === 'Best')?.className}
-              </h3>
-            </div>
-            <div className="bg-yellow-50 p-2 rounded-lg text-yellow-600">
-               <Award className="w-5 h-5" />
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">Minggu ini</p>
         </div>
       </div>
 

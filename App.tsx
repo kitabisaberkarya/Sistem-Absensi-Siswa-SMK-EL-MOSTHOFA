@@ -4,13 +4,16 @@
 
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import { ToastContainer } from './components/ToastContainer';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { Login } from './features/auth/Login';
 import { AttendancePage } from './features/teacher/AttendancePage';
 import { TeacherReportsPage } from './features/teacher/TeacherReportsPage';
 import { CounselorReportsPage } from './features/counselor/CounselorReportsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
-import { PrincipalReportsPage } from './features/principal/PrincipalReportsPage'; // New Import
+import { PrincipalReportsPage } from './features/principal/PrincipalReportsPage';
 import { TeachersPage } from './features/admin/TeachersPage';
 import { StudentsPage } from './features/admin/StudentsPage';
 import { AcademicsPage } from './features/admin/AcademicsPage';
@@ -90,9 +93,14 @@ const AppContent = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+          <ToastContainer />
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }
 

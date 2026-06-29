@@ -135,6 +135,9 @@ function executeReadAction(action, payload) {
       case 'fetchDashboardStats': return getDashboardStats();
       case 'getSystemSettings': return getSystemSettings();
       
+      // Mailbox
+      case 'fetchMessages': return getMessages(payload.userId);
+
       case 'fetchFullAttendanceLogs':
           const att = getData(SHEETS.ATTENDANCE);
           // Simple grouping logic for logs
@@ -165,6 +168,7 @@ function executeWriteAction(action, payload) {
       // Teachers & Users
       case 'createTeacher': return createTeacher(payload);
       case 'updateTeacher': return updateTeacher(payload);
+      case 'changePassword': return changePassword(payload);
       case 'importTeachers': return importTeachers(payload.teachers);
       case 'importGlobalUsers': return importGlobalUsers(payload.users); // NEW ROUTE
 
@@ -176,11 +180,14 @@ function executeWriteAction(action, payload) {
 
       // Academics
       case 'createMajor': return createMajor(payload);
+      case 'updateMajor': return updateMajor(payload);
       case 'deleteMajor': return deleteMajor(payload.id);
       case 'createSubject': return createSubject(payload);
+      case 'updateSubject': return updateSubject(payload);
       case 'deleteSubject': return deleteSubject(payload.id);
       case 'importSubjects': return importSubjects(payload.subjects);
       case 'createClass': return createClass(payload);
+      case 'updateClass': return updateClass(payload);
       case 'deleteClass': return deleteClass(payload.id);
 
       // Transactions
@@ -188,6 +195,12 @@ function executeWriteAction(action, payload) {
       case 'saveSystemSettings': return saveSystemSettings(payload);
       case 'uploadFile': return uploadFileToDrive(payload);
       
+      // Mailbox
+      case 'sendMessage': return sendMessage(payload);
+      case 'markMessageRead': return markMessageRead(payload.messageId);
+      case 'toggleStarMessage': return toggleStarMessage(payload.messageId);
+      case 'deleteMessage': return deleteMessage(payload.messageId);
+
       // System
       case 'backupDatabase': return backupDatabase();
       case 'restoreDatabase': return restoreDatabase(payload);
@@ -245,11 +258,11 @@ function getCachedData(action, payload, fetchFunction) {
  */
 function smartInvalidateCaches(action) {
   const cache = CacheService.getScriptCache();
-  
-  // 1. Jika ada perubahan data Siswa/Guru/Absensi, Statistik Dashboard pasti berubah
-  // Jadi kita hapus cache dashboard agar Admin melihat data terbaru
+
+  // 1. Hapus semua cache dashboard & log absensi setiap kali ada perubahan data
   cache.remove('fetchDashboardStats');
-  cache.remove('fetchCounselingData'); // Data BK juga berubah
+  cache.remove('fetchCounselingData');
+  cache.remove('fetchFullAttendanceLogs'); // Log harian harus selalu fresh setelah absensi
   
   // 2. Jika Data Siswa berubah
   if (action.includes('Student')) {

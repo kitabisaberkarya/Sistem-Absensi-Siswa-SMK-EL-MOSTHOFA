@@ -23,6 +23,20 @@ function deleteMajor(id) {
   return { message: 'Deleted' };
 }
 
+function updateMajor(payload) {
+  const sheet = getSheetOrSetup(SHEETS.MAJORS);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(payload.id)) {
+      sheet.getRange(i + 1, 2).setValue(payload.code);
+      sheet.getRange(i + 1, 3).setValue(payload.name);
+      invalidateCaches([SHEETS.MAJORS]);
+      return { message: 'Updated' };
+    }
+  }
+  throw new Error('Jurusan tidak ditemukan.');
+}
+
 // --- SUBJECTS ---
 function getAllSubjects() { return getData(SHEETS.SUBJECTS); }
 
@@ -41,6 +55,21 @@ function deleteSubject(id) {
   deleteRowById(sheet, id);
   invalidateCaches([SHEETS.SUBJECTS]);
   return { message: 'Deleted' };
+}
+
+function updateSubject(payload) {
+  const sheet = getSheetOrSetup(SHEETS.SUBJECTS);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(payload.id)) {
+      sheet.getRange(i + 1, 2).setValue(payload.code);
+      sheet.getRange(i + 1, 3).setValue(payload.name);
+      sheet.getRange(i + 1, 4).setValue(payload.category);
+      invalidateCaches([SHEETS.SUBJECTS]);
+      return { message: 'Updated' };
+    }
+  }
+  throw new Error('Mata pelajaran tidak ditemukan.');
 }
 
 /**
@@ -100,6 +129,21 @@ function deleteClass(id) {
   deleteRowById(sheet, id);
   invalidateCaches([SHEETS.CLASSES]);
   return { message: 'Deleted' };
+}
+
+function updateClass(payload) {
+  const sheet = getSheetOrSetup(SHEETS.CLASSES);
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(payload.id)) {
+      sheet.getRange(i + 1, 2).setValue(payload.name);
+      sheet.getRange(i + 1, 3).setValue(payload.level);
+      sheet.getRange(i + 1, 4).setValue(payload.major);
+      invalidateCaches([SHEETS.CLASSES]);
+      return { message: 'Updated' };
+    }
+  }
+  throw new Error('Kelas tidak ditemukan.');
 }
 
 // Helper

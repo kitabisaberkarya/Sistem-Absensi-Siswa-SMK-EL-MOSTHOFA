@@ -121,6 +121,29 @@ function updateTeacher(payload) {
   return { message: 'User updated successfully' };
 }
 
+function changePassword(payload) {
+  const sheet = getSheetOrSetup(SHEETS.USERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idIdx = headers.indexOf('id');
+  const pwIdx = headers.indexOf('password');
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIdx]) === String(payload.userId)) {
+      if (String(data[i][pwIdx]) !== String(payload.currentPassword)) {
+        throw new Error('Kata sandi saat ini tidak sesuai.');
+      }
+      if (!payload.newPassword || payload.newPassword.length < 6) {
+        throw new Error('Kata sandi baru minimal 6 karakter.');
+      }
+      sheet.getRange(i + 1, pwIdx + 1).setValue(payload.newPassword);
+      invalidateCaches([SHEETS.USERS]);
+      return { message: 'Kata sandi berhasil diubah.' };
+    }
+  }
+  throw new Error('User tidak ditemukan.');
+}
+
 /**
  * IMPORT TEACHERS (Legacy/Specific)
  */
